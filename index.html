@@ -207,9 +207,10 @@
             font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
             padding: 2px 8px; border-radius: 6px; font-weight: 700;
         }
-        .result-item .ri-status.sending { background: #1e3a5f22; color: #60a5fa; }
+        .result-item .ri-status.sending { background: #1e3a5f22; color: #60a5fa; animation: pulse 2s infinite; }
         .result-item .ri-status.sent { background: #1e2230; color: #9ba1b2; }
-        .result-item .ri-status.pending { background: #1e2230; color: #fbbf24; }
+        .result-item .ri-status.pending { background: #1e3a5f22; color: #60a5fa; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .result-item .ri-status.ok { background: #065f4622; color: #34d399; }
         .result-item .ri-status.error { background: #7f1d1d22; color: #f87171; }
         .result-item .ri-status.write_fail { background: #7f1d1d22; color: #fb923c; }
@@ -419,6 +420,7 @@
                         <button class="btn btn-ghost btn-sm" onclick="showView('dashboard')">← Back</button>
                         <button class="btn btn-ghost btn-sm" onclick="clearCmdResults()">Clear</button>
                         <button class="btn btn-ghost btn-sm" onclick="retryLastFailedCmd()">↻ Retry Failed</button>
+                        <button class="btn btn-ghost btn-sm" onclick="refreshPendingResults()">⟳ Load Pending</button>
                     </div>
                 </div>
 
@@ -625,7 +627,8 @@
         contextDeviceId: null,
         pendingModalCmd: null,
         deviceUnsubscribe: null,
-        writeStatus: 'ready', // ready, writing
+        resultUnsub: null,
+        writeStatus: 'ready',
     };
 
     let firebaseInitialized = false;
@@ -985,6 +988,12 @@
         const idx = name === 'dashboard' ? 0 : 1;
         document.querySelectorAll('.sidebar-nav a')[idx]?.classList.add('active');
 
+        // Clean up result listener when leaving command view
+        if (name !== 'command' && state.resultUnsub) {
+            state.resultUnsub();
+            state.resultUnsub = null;
+        }
+
         if (name === 'dashboard') {
             pingOfflineDevices();
             if (pingTimer) clearInterval(pingTimer);
@@ -993,6 +1002,109 @@
         } else {
             if (pingTimer) { clearInterval(pingTimer); pingTimer = null; appendDiag('⏹️ Ping watch stopped'); }
         }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  PERSISTENT PENDING COMMAND TRACKER
+    //  When entering Command Center, check for results that
+    //  were written while we were away (device was offline
+    //  when command was sent but came online later).
+    // ═══════════════════════════════════════════════════════
+    async function loadPendingResultsForDevice(deviceId) {
+        if (!db || !firebaseInitialized) return;
+        appendDiag(`🔍 Checking for pending results for ${deviceId.slice(0,8)}…`);
+        try {
+            // Query commands sent TO this device
+            const cmdSnapshot = await db.collection('commands')
+                .whereEqualTo('deviceId', deviceId)
+                .get();
+
+            // Query results written BY this device
+            const resultSnapshot = await db.collection('results')
+                .get();
+
+            // Build lookup of result doc IDs
+            const resultIds = new Set();
+            resultSnapshot.forEach(doc => resultIds.add(doc.id));
+
+            // For each pending command, check if result exists
+            cmdSnapshot.forEach(doc => {
+                const cmdId = doc.id;
+                const cmdData = doc.data();
+                const action = cmdData.action || '?';
+                const alreadyShown = state.results.find(r => r.id === cmdId);
+                if (alreadyShown) return;
+
+                if (resultIds.has(cmdId)) {
+                    // Result already written — add to our display
+                    const resultDoc = resultSnapshot.docs.find(d => d.id === cmdId);
+                    if (resultDoc) {
+                        const rd = resultDoc.data();
+                        state.results.unshift({
+                            id: cmdId,
+                            action: action,
+                            name: action,
+                            status: rd.status || 'ok',
+                            output: rd.output || '—',
+                            time: new Date((rd.completedAt || 0)).toLocaleTimeString(),
+                            params: cmdData.params || {}
+                        });
+                    }
+                } else {
+                    // Command still pending — the device hasn't picked it up yet
+                    state.results.unshift({
+                        id: cmdId,
+                        action: action,
+                        name: action,
+                        status: 'pending',
+                        output: '⏳ Device offline — will execute when online',
+                        time: new Date((cmdData.createdAt || 0)).toLocaleTimeString(),
+                        params: cmdData.params || {}
+                    });
+                }
+            });
+
+            if (cmdSnapshot.size > 0) {
+                appendDiag(`📋 Loaded ${cmdSnapshot.size} pending/result commands`);
+            }
+            renderCmdResults();
+        } catch (e) {
+            appendDiag(`⚠️ loadPendingResults: ${e.message}`);
+        }
+    }
+
+    function refreshPendingResults() {
+        if (state.selectedDeviceId) {
+            loadPendingResultsForDevice(state.selectedDeviceId);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  REAL-TIME RESULTS LISTENER
+    // ═══════════════════════════════════════════════════════
+    function startResultListenerForDevice(deviceId) {
+        if (!db || !firebaseInitialized) return;
+        if (state.resultUnsub) state.resultUnsub();
+
+        // Listen to ALL new results being created in the results collection
+        state.resultUnsub = db.collection('results')
+            .onSnapshot(snapshot => {
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === 'added') {
+                        const docId = change.doc.id;
+                        const data = change.doc.data();
+                        // Check if this result matches a command we sent
+                        const existing = state.results.find(r => r.id === docId);
+                        if (existing && (existing.status === 'sent' || existing.status === 'pending')) {
+                            updateCmdResult(docId, data.status || 'error', data.output || '—');
+                            toast(data.status === 'ok' ? '✓ ' + existing.name : '✗ ' + existing.name,
+                                  data.status === 'ok' ? 'success' : 'error');
+                        }
+                    }
+                });
+            }, err => {
+                appendDiag(`⚠️ Result listener error: ${err.message}`);
+            });
     }
 
     function selectDevice(deviceId) {
@@ -1008,6 +1120,12 @@
         renderCmdResults();
         showView('command');
         toast('Controlling: ' + deviceId.slice(0, 12) + '…', 'info');
+        
+        // Load results from Firestore that were written while away
+        setTimeout(() => {
+            loadPendingResultsForDevice(deviceId);
+            startResultListenerForDevice(deviceId);
+        }, 1000);
     }
 
     // ═══════════════════════════════════════════════════════
@@ -1145,9 +1263,9 @@
                 // Check if still pending — mark as timeout
                 const found = state.results.find(r => r.id === cmdId);
                 if (found && (found.status === 'sent' || found.status === 'pending')) {
-                    updateCmdResult(cmdId, 'error', '⏱️ Timeout after 30s — device did not respond. Check if device is online and CommandPoller is running.');
+                    updateCmdResult(cmdId, 'pending', '⏱️ Device did not respond in 30s. Result will appear when device comes online.');
                     unsub();
-                    toast('⏱️ ' + actionLabel + ' timed out', 'error');
+                    toast('⏱️ ' + actionLabel + ' — waiting for device', 'info');
                 }
             }, 30000);
 
@@ -1172,6 +1290,7 @@
         else if (status === 'write_fail') { lastStatusEl.textContent = 'WRITE FAIL'; lastStatusEl.className = 'value red'; }
         else if (status === 'sending') { lastStatusEl.textContent = 'Sending…'; lastStatusEl.className = 'value yellow'; }
         else if (status === 'sent') { lastStatusEl.textContent = 'Sent'; lastStatusEl.className = 'value yellow'; }
+        else if (status === 'pending') { lastStatusEl.textContent = 'Pending'; lastStatusEl.className = 'value yellow'; }
         else { lastStatusEl.textContent = status; lastStatusEl.className = 'value yellow'; }
     }
 
