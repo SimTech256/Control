@@ -1425,7 +1425,7 @@
         appendDiag(`🔍 Checking for pending results for ${deviceId.slice(0,8)}…`);
         try {
             const cmdSnapshot = await db.collection('commands')
-                .whereEqualTo('deviceId', deviceId)
+                .where('deviceId', '==', deviceId)
                 .get();
 
             const resultSnapshot = await db.collection('results').get();
@@ -2469,7 +2469,7 @@
         try {
             // Fetch all commands for this device
             const cmdSnap = await db.collection('commands')
-                .whereEqualTo('deviceId', deviceId)
+                .where('deviceId', '==', deviceId)
                 .get();
 
             // Fetch all results
