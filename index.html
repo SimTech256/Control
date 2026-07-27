@@ -9,6 +9,10 @@
     <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-auth-compat.js"></script>
 
+    <!-- Leaflet for maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { font-size: 15px; }
@@ -91,6 +95,10 @@
         .btn-danger { background: linear-gradient(135deg, #ef4444, #f87171); color: #fff; }
         .btn-sm { padding: 6px 13px; font-size: 12px; border-radius: 7px; }
         .btn-warning { background: linear-gradient(135deg, #f59e0b, #fbbf24); color: #000; }
+        .btn-success { background: linear-gradient(135deg, #10b981, #34d399); color: #fff; }
+        .btn-success:hover { transform: translateY(-1px); box-shadow: 0 4px 15px #10b98144; }
+        .btn-stop { background: linear-gradient(135deg, #ef4444, #f87171); color: #fff; }
+        .btn-stop:hover { transform: translateY(-1px); box-shadow: 0 4px 15px #ef444444; }
 
         .status-bar { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
         .status-card {
@@ -107,6 +115,7 @@
         .status-card .value.red { color: #f87171; }
         .status-card .value.purple { color: #a78bfa; }
         .status-card .value.yellow { color: #fbbf24; }
+        .status-card .value.blue { color: #60a5fa; }
 
         .device-grid {
             display: grid;
@@ -192,6 +201,7 @@
             font-size: 11px; color: #9ba1b2;
         }
 
+        /* ═══ RESULT ITEM — Enhanced ═══ */
         .result-item {
             background: #101218; border: 1px solid #1e2230;
             border-radius: 10px; padding: 12px 16px; margin-bottom: 8px;
@@ -216,12 +226,111 @@
             font-family: 'SF Mono', 'Fira Code', monospace;
             font-size: 12px; color: #9ba1b2; word-break: break-word;
         }
+        /* Structured result data */
+        .result-item .ri-structured {
+            margin-top: 6px;
+            background: #0b0d12;
+            border-radius: 6px;
+            padding: 8px 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .result-item .ri-structured .struct-row {
+            display: flex; gap: 8px; padding: 3px 0;
+            border-bottom: 1px solid #1a1e2c;
+            font-size: 11px;
+        }
+        .result-item .ri-structured .struct-row:last-child { border-bottom: none; }
+        .result-item .ri-structured .struct-key {
+            color: #6c5ce7; font-weight: 600; min-width: 80px;
+            font-family: 'SF Mono', monospace;
+        }
+        .result-item .ri-structured .struct-val { color: #c4c9d6; flex: 1; font-family: 'SF Mono', monospace; }
+        .result-item .ri-structured .struct-val.sms-text {
+            color: #fbbf24; font-style: italic;
+        }
+        .result-item .ri-expand {
+            font-size: 10px; color: #6c5ce7; cursor: pointer;
+            margin-top: 4px; display: inline-block;
+        }
+        .result-item .ri-expand:hover { text-decoration: underline; }
+        .result-item .ri-collapsed-content { display: none; }
+        .result-item .ri-collapsed-content.open { display: block; }
+
         .results-header {
             display: flex; align-items: center; justify-content: space-between;
             margin: 16px 0 10px;
         }
         .results-header span { font-size: 12px; color: #6b7280; }
         .empty { color: #6b7280; font-size: 13px; text-align: center; padding: 24px; }
+
+        /* ═══ HISTORY TABLE ═══ */
+        .history-table-wrap {
+            background: #101218; border: 1px solid #1e2230;
+            border-radius: 14px; overflow: hidden;
+        }
+        .history-table {
+            width: 100%; border-collapse: collapse;
+            font-size: 12px;
+        }
+        .history-table thead {
+            background: #1b1f2e;
+            border-bottom: 1px solid #1e2230;
+        }
+        .history-table th {
+            text-align: left; padding: 10px 12px;
+            font-size: 10px; text-transform: uppercase; letter-spacing: 0.7px;
+            color: #5a6070; font-weight: 700; white-space: nowrap;
+            cursor: pointer; user-select: none;
+        }
+        .history-table th:hover { color: #c4b9fd; }
+        .history-table th .sort-arrow { margin-left: 4px; font-size: 9px; }
+        .history-table td {
+            padding: 8px 12px; border-bottom: 1px solid #1a1e2c;
+            vertical-align: top;
+        }
+        .history-table tr:hover td { background: #15192a; }
+        .history-table .ht-status {
+            font-size: 9px; text-transform: uppercase; letter-spacing: 0.4px;
+            padding: 2px 6px; border-radius: 4px; font-weight: 700;
+            display: inline-block;
+        }
+        .history-table .ht-status.ok { background: #065f4622; color: #34d399; }
+        .history-table .ht-status.error { background: #7f1d1d22; color: #f87171; }
+        .history-table .ht-status.sent { background: #1e2230; color: #9ba1b2; }
+        .history-table .ht-status.pending { background: #1e3a5f22; color: #60a5fa; }
+        .history-table .ht-status.write_fail { background: #7f1d1d22; color: #fb923c; }
+        .history-table .ht-action { font-weight: 600; color: #c4c9d6; }
+        .history-table .ht-output {
+            font-family: 'SF Mono', monospace; font-size: 11px;
+            color: #6b7280; max-width: 300px;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .history-table .ht-output.expanded {
+            white-space: pre-wrap; max-width: 500px;
+        }
+        .history-table .ht-time { white-space: nowrap; color: #6b7280; font-size: 11px; }
+        .history-table .ht-expand-btn {
+            font-size: 9px; color: #6c5ce7; cursor: pointer; margin-left: 4px;
+        }
+        .history-table .ht-expand-btn:hover { text-decoration: underline; }
+        .history-table .ht-row-error td { background: #7f1d1d0d; }
+        .history-table .ht-row-ok td { background: #065f4608; }
+
+        .history-filters {
+            display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;
+        }
+        .history-filters input, .history-filters select {
+            padding: 6px 10px; border-radius: 6px;
+            background: #0b0d12; border: 1px solid #1e2230;
+            color: #e4e7ed; font-size: 12px; font-family: inherit;
+        }
+        .history-filters input:focus, .history-filters select:focus {
+            outline: 2px solid #6c5ce766; border-color: transparent;
+        }
+        .history-count {
+            font-size: 12px; color: #6b7280; margin-bottom: 10px;
+        }
 
         .context-menu {
             position: fixed; z-index: 9999;
@@ -249,7 +358,9 @@
             background: #13182a; border: 1px solid #1e2230;
             border-radius: 16px; padding: 28px; width: 90%; max-width: 460px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            max-height: 90vh; overflow-y: auto;
         }
+        .modal-box.wide { max-width: 90vw; width: 900px; }
         .modal-box h3 { font-size: 17px; margin-bottom: 4px; }
         .modal-box p { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
         .modal-box label { font-size: 12px; display: block; margin-top: 10px; color: #9ba1b2; }
@@ -271,7 +382,7 @@
             background: #13182a;
             color: #e4e7ed;
         }
-        .modal-buttons { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; flex-wrap: wrap; }
         .modal-buttons .btn { font-size: 12px; padding: 7px 16px; }
 
         .settings-group { margin: 12px 0; }
@@ -315,12 +426,126 @@
         }
         .retry-btn:hover { background: #fb923c22; }
 
+        /* ═══ SEEK BAR / RANGE SLIDER ═══ */
+        .seekbar-group {
+            margin-top: 14px; padding: 12px;
+            background: #0b0d12; border-radius: 10px;
+            border: 1px solid #1e2230;
+        }
+        .seekbar-group .seekbar-label {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 12px; color: #9ba1b2; margin-bottom: 8px;
+        }
+        .seekbar-group .seekbar-label .seekbar-pct {
+            font-weight: 700; font-size: 16px; color: #a78bfa;
+        }
+        .seekbar-group input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%; height: 6px;
+            background: linear-gradient(to right, #6c5ce7 0%, #6c5ce7 50%, #1e2230 50%, #1e2230 100%);
+            border-radius: 10px;
+            outline: none;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        .seekbar-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px; height: 18px;
+            background: linear-gradient(135deg, #a78bfa, #6c5ce7);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(108,92,231,0.5);
+            border: 2px solid #13182a;
+            transition: transform 0.15s;
+        }
+        .seekbar-group input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+        .seekbar-group input[type="range"]::-moz-range-thumb {
+            width: 18px; height: 18px;
+            background: linear-gradient(135deg, #a78bfa, #6c5ce7);
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #13182a;
+        }
+        .seekbar-group .seekbar-val-display {
+            margin-top: 6px; text-align: center;
+            font-size: 11px; color: #5a6070;
+        }
+        .seekbar-group .seekbar-live-label {
+            margin-top: 4px; text-align: center;
+            font-size: 10px; color: #34d399;
+        }
+
+        /* ═══ MAP ═══ */
+        .map-section {
+            margin-top: 16px;
+            background: #101218;
+            border: 1px solid #1e2230;
+            border-radius: 14px;
+            padding: 14px;
+            display: none;
+        }
+        .map-section.visible { display: block; }
+        .map-section .map-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .map-section .map-header h4 { font-size: 13px; font-weight: 600; }
+        .map-section .map-container {
+            height: 220px; border-radius: 10px;
+            border: 1px solid #1e2230;
+            z-index: 1;
+        }
+        .map-section .map-coords {
+            font-size: 11px; color: #6b7280; font-family: monospace;
+            margin-top: 6px;
+        }
+
+        .find-phone-buttons {
+            display: flex; gap: 12px; margin-top: 12px;
+        }
+        .find-phone-buttons .btn { flex: 1; justify-content: center; padding: 12px; font-size: 14px; }
+
+        .app-fetch-area {
+            margin-top: 12px;
+            padding: 12px;
+            background: #0b0d12;
+            border-radius: 8px;
+            border: 1px solid #1e2230;
+        }
+        .app-fetch-area .fetch-status {
+            font-size: 11px; color: #6b7280; margin-top: 6px;
+        }
+        .app-fetch-area .app-select-wrap { margin-top: 8px; }
+
+        .tracking-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 3px 10px; border-radius: 10px;
+            font-size: 10px; font-weight: 600;
+        }
+        .tracking-badge.active { background: #065f4622; color: #34d399; border: 1px solid #34d39944; }
+        .tracking-badge.inactive { background: #1e2230; color: #6b7280; }
+
+        /* ═══ STRUCTURED DATA TOGGLE ═══ */
+        .struct-toggle {
+            font-size: 10px; color: #6c5ce7; cursor: pointer;
+            margin-top: 4px; display: inline-block;
+        }
+        .struct-toggle:hover { text-decoration: underline; }
+
         @media (max-width: 768px) {
             .sidebar { display: none; }
             .main { padding: 16px; }
             .device-grid { grid-template-columns: 1fr; }
             .cmd-grid { grid-template-columns: repeat(2, 1fr); }
             .status-bar { flex-direction: column; }
+            .modal-box.wide { max-width: 95%; padding: 16px; }
+            .history-table { font-size: 10px; }
+            .history-table th, .history-table td { padding: 6px 8px; }
+            .find-phone-buttons { flex-direction: column; }
         }
     </style>
 </head>
@@ -341,6 +566,9 @@
                 <a onclick="showView('command')">
                     <span class="icon">⌘</span> Command Center
                 </a>
+                <a onclick="showView('history')" id="navHistory" style="opacity:0.5;pointer-events:none;">
+                    <span class="icon">📋</span> History
+                </a>
                 <div class="nav-label" style="margin-top:16px;">Status</div>
                 <div style="padding:8px 12px;font-size:12px;color:#5a6070;">
                     <div id="sidebarStatus" style="display:flex;align-items:center;gap:6px;">
@@ -349,6 +577,7 @@
                     <div id="sidebarAuth" style="margin-top:4px;font-size:10px;word-break:break-all;"></div>
                     <div id="sidebarDeviceCount" style="margin-top:4px;">Devices: —</div>
                     <div id="sidebarPingStatus" style="margin-top:4px;font-size:10px;color:#5a6070;"></div>
+                    <div id="sidebarTrackingStatus" style="margin-top:4px;font-size:10px;color:#5a6070;"></div>
                 </div>
             </nav>
             <div class="sidebar-footer">
@@ -415,6 +644,7 @@
                     </div>
                     <div class="topbar-right">
                         <button class="btn btn-ghost btn-sm" onclick="showView('dashboard')">← Back</button>
+                        <button class="btn btn-ghost btn-sm" onclick="openHistoryForDevice()" id="cmdHistoryBtn" style="display:none;">📋 History</button>
                         <button class="btn btn-ghost btn-sm" onclick="clearCmdResults()">Clear</button>
                         <button class="btn btn-ghost btn-sm" onclick="retryLastFailedCmd()">↻ Retry Failed</button>
                         <button class="btn btn-ghost btn-sm" onclick="refreshPendingResults()">⟳ Load Pending</button>
@@ -442,9 +672,69 @@
                     </div>
                 </div>
 
+                <!-- ═══ GPS MAP SECTION ═══ -->
+                <div class="map-section" id="gpsMapSection">
+                    <div class="map-header">
+                        <h4 id="gpsMapTitle">📍 Location</h4>
+                        <div style="display:flex;gap:6px;align-items:center;">
+                            <span id="gpsTrackingStatus" class="tracking-badge inactive">Not tracking</span>
+                            <button class="btn btn-ghost btn-sm" onclick="expandMap()">⛶ Fullscreen</button>
+                            <button class="btn btn-ghost btn-sm" onclick="closeMapSection()">✕</button>
+                        </div>
+                    </div>
+                    <div class="map-container" id="liveMap"></div>
+                    <div class="map-coords" id="mapCoords">No location data yet</div>
+                </div>
+
                 <div class="results-header"><span>Command Log</span><span id="cmdResultCount2">0 results</span></div>
                 <div id="resultsBody">
                     <div class="empty">Results appear here</div>
+                </div>
+            </div>
+
+            <!-- ═══ HISTORY VIEW ═══ -->
+            <div id="viewHistory" class="view">
+                <div class="topbar">
+                    <div class="topbar-left">
+                        <h2>📋 Command History</h2>
+                        <p>Device: <span id="histDeviceDisplay" style="font-family:monospace;">—</span></p>
+                    </div>
+                    <div class="topbar-right">
+                        <button class="btn btn-ghost btn-sm" onclick="showView('command')">← Back to Commands</button>
+                        <button class="btn btn-ghost btn-sm" onclick="loadFullHistory()">⟳ Reload</button>
+                    </div>
+                </div>
+
+                <div class="history-filters">
+                    <input type="text" id="histSearch" placeholder="🔍 Search output…" oninput="filterHistory()" />
+                    <select id="histStatusFilter" onchange="filterHistory()">
+                        <option value="all">All Status</option>
+                        <option value="ok">OK</option>
+                        <option value="error">Error</option>
+                        <option value="pending">Pending</option>
+                        <option value="sent">Sent</option>
+                    </select>
+                    <select id="histActionFilter" onchange="filterHistory()">
+                        <option value="all">All Actions</option>
+                    </select>
+                    <span style="font-size:12px;color:#5a6070;" id="histCountDisplay"></span>
+                </div>
+
+                <div class="history-table-wrap">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th onclick="sortHistory('time')">Time <span class="sort-arrow" id="sortArrowTime">▼</span></th>
+                                <th onclick="sortHistory('action')">Action <span class="sort-arrow" id="sortArrowAction"></span></th>
+                                <th onclick="sortHistory('status')">Status <span class="sort-arrow" id="sortArrowStatus"></span></th>
+                                <th>Params</th>
+                                <th onclick="sortHistory('output')">Output <span class="sort-arrow" id="sortArrowOutput"></span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyBody">
+                            <tr><td colspan="5" style="text-align:center;padding:40px;color:#6b7280;">Loading history…</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -472,15 +762,7 @@
             <h3 id="modalTitle">Action</h3>
             <p id="modalSub"></p>
             <div id="modalFields"></div>
-            <div id="modalSimSelector" style="display:none;margin-top:12px;">
-                <label>📱 SIM Slot</label>
-                <select id="simSlotSelect">
-                    <option value="">-- Auto / Default SIM --</option>
-                    <option value="1">SIM 1</option>
-                    <option value="2">SIM 2</option>
-                </select>
-                <div id="simSlotInfo" style="font-size:10px;color:#5a6070;margin-top:3px;"></div>
-            </div>
+
             <div id="modalToggleSelector" style="display:none;margin-top:12px;">
                 <label>🔦 Flashlight</label>
                 <select id="toggleSelect">
@@ -488,6 +770,7 @@
                     <option value="off">Turn Off</option>
                 </select>
             </div>
+
             <div id="modalCameraSelector" style="display:none;margin-top:12px;">
                 <label>📷 Camera</label>
                 <select id="cameraSelect">
@@ -495,6 +778,7 @@
                     <option value="front">Front Camera</option>
                 </select>
             </div>
+
             <div id="modalHideShowSelector" style="display:none;margin-top:12px;">
                 <label>👁️ Action</label>
                 <select id="hideShowSelect">
@@ -502,14 +786,95 @@
                     <option value="show">Show App Icon</option>
                 </select>
             </div>
+
+            <div id="modalSimSelector" style="display:none;margin-top:12px;">
+                <label>📱 SIM Slot</label>
+                <select id="simSlotSelect">
+                    <option value="">-- Auto / Default SIM --</option>
+                    <option value="1">SIM 1</option>
+                    <option value="2">SIM 2</option>
+                </select>
+            </div>
+
             <div id="modalLimitField" style="display:none;margin-top:12px;">
                 <label>🔢 Limit</label>
                 <input type="number" id="limitInput" value="50" min="1" max="500" />
             </div>
-            <div class="modal-buttons">
+
+            <div id="modalSmsFolderSelector" style="display:none;margin-top:12px;">
+                <label>📋 SMS Folder</label>
+                <select id="smsFolderSelect">
+                    <option value="inbox">📥 Inbox</option>
+                    <option value="sent">📤 Sent</option>
+                    <option value="all">📬 All Messages</option>
+                </select>
+                <div style="font-size:10px;color:#5a6070;margin-top:3px;">Choose which folder to list messages from</div>
+            </div>
+
+            <div id="modalFindPhone" style="display:none;margin-top:12px;">
+                <label>📱 Find Phone - Ring Control</label>
+                <div class="find-phone-buttons">
+                    <button class="btn btn-success" id="findPhoneStartBtn" onclick="executeFindPhone('start')">
+                        🔔 Start Ringing
+                    </button>
+                    <button class="btn btn-stop" id="findPhoneStopBtn" onclick="executeFindPhone('stop')">
+                        🔕 Stop Ringing
+                    </button>
+                </div>
+                <div style="font-size:10px;color:#5a6070;margin-top:6px;">
+                    Start makes the device ring at max volume. Stop silences it immediately.
+                </div>
+            </div>
+
+            <div id="modalOpenApp" style="display:none;margin-top:12px;">
+                <label>📱 App to Open</label>
+                <div class="app-fetch-area">
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <input type="text" id="openAppPackageInput" placeholder="com.example.app" style="flex:1;" />
+                        <button class="btn btn-ghost btn-sm" onclick="fetchInstalledApps()" id="fetchAppsBtn">📦 Fetch Apps</button>
+                    </div>
+                    <div class="app-select-wrap">
+                        <select id="openAppSelect" onchange="onAppSelectChange()">
+                            <option value="">— Select installed app —</option>
+                        </select>
+                    </div>
+                    <div class="fetch-status" id="fetchAppsStatus">Click "Fetch Apps" to load installed apps from device</div>
+                </div>
+            </div>
+
+            <div class="modal-buttons" id="modalDefaultButtons">
                 <button class="btn btn-ghost" onclick="closeParamModal()">Cancel</button>
                 <button class="btn btn-primary" onclick="onModalConfirm()">Execute</button>
             </div>
+
+            <div class="modal-buttons" id="modalFindPhoneButtons" style="display:none;">
+                <button class="btn btn-ghost" onclick="closeParamModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ FULLSCREEN MAP MODAL ═══ -->
+    <div class="modal-overlay" id="mapModal">
+        <div class="modal-box" style="max-width:92vw;width:900px;height:85vh;padding:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h3 id="mapModalTitle">📍 Location View</h3>
+                <button class="btn btn-ghost btn-sm" onclick="closeMapModal()">✕ Close</button>
+            </div>
+            <div id="fullMapContainer" style="height:calc(85vh - 80px);border-radius:10px;border:1px solid #1e2230;"></div>
+        </div>
+    </div>
+
+    <!-- ═══ RESULT DETAIL MODAL ═══ -->
+    <div class="modal-overlay" id="resultDetailModal">
+        <div class="modal-box wide">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+                <div>
+                    <h3 id="rdTitle">📄 Result Detail</h3>
+                    <p id="rdMeta" style="margin-bottom:0;"></p>
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="closeResultDetail()">✕ Close</button>
+            </div>
+            <div id="rdBody" style="background:#0b0d12;border-radius:8px;padding:14px;font-family:'SF Mono',monospace;font-size:12px;color:#9ba1b2;white-space:pre-wrap;word-break:break-word;max-height:60vh;overflow-y:auto;"></div>
         </div>
     </div>
 
@@ -575,8 +940,8 @@
             { icon: '💻', name: 'Device Info', action: 'get_device_info' },
             { icon: '🔋', name: 'Battery Info', action: 'get_battery_info' },
             { icon: '📶', name: 'Network Info', action: 'get_network_info' },
-            { icon: '🔆', name: 'Set Brightness', action: 'set_brightness', params: { level: '128' } },
-            { icon: '📱', name: 'Find Phone', action: 'find_phone' },
+            { icon: '🔆', name: 'Set Brightness', action: 'set_brightness', hasSeekbar: { key: 'level', min: 0, max: 255, label: 'Brightness' } },
+            { icon: '🔔', name: 'Find Phone', action: 'find_phone', isFindPhone: true },
             { icon: '🌅', name: 'Wake Screen', action: 'wake_screen' },
             { icon: '🔇', name: 'Mute', action: 'mute' },
         ],
@@ -585,7 +950,7 @@
             { icon: '📹', name: 'Record Screen', action: 'record_screen', params: { duration: '30' } },
             { icon: '📸', name: 'Take Photo', action: 'take_photo', isCamera: true },
             { icon: '📢', name: 'Play Sound', action: 'play_sound', params: { url: 'https://example.com/alert.mp3' } },
-            { icon: '🔊', name: 'Set Volume', action: 'set_volume', params: { level: '80', stream: 'media' } },
+            { icon: '🔊', name: 'Set Volume', action: 'set_volume', hasSeekbar: { key: 'level', min: 0, max: 100, label: 'Volume' }, params: { stream: 'media' } },
             { icon: '🔇', name: 'Ringer Mode', action: 'set_ringer_mode', params: { mode: 'silent' } },
         ],
         files: [
@@ -605,7 +970,7 @@
             { icon: '🌐', name: 'Open URL', action: 'open_url', params: { url: 'https://example.com' } },
             { icon: '📞', name: 'Start Call', action: 'start_call', params: { number: '+1234567890' }, simSlot: true },
             { icon: '💬', name: 'Send SMS', action: 'send_sms', params: { to: '+1234567890', text: 'Hello' }, simSlot: true },
-            { icon: '📋', name: 'List SMS', action: 'list_sms', params: { folder: 'inbox' } },
+            { icon: '📋', name: 'List SMS', action: 'list_sms', isSmsFolder: true },
             { icon: '🗑️', name: 'Delete SMS', action: 'delete_sms', params: { id: '123' } },
             { icon: '💬', name: 'SMS Threads', action: 'get_sms_threads' },
             { icon: '📞', name: 'List SIMs', action: 'list_sims' },
@@ -625,7 +990,7 @@
         ],
         loc: [
             { icon: '📍', name: 'GPS Once', action: 'get_location' },
-            { icon: '🔄', name: 'GPS Tracking', action: 'start_tracking', params: { interval_ms: '5000' } },
+            { icon: '🔄', name: 'GPS Tracking', action: 'start_tracking', isTrackingToggle: true, params: { interval_ms: '5000' } },
             { icon: '⏹️', name: 'Stop Tracking', action: 'stop_tracking' },
             { icon: '📡', name: 'Cell Towers', action: 'get_cell_towers' },
             { icon: '📶', name: 'WiFi Networks', action: 'get_wifi_networks' },
@@ -650,6 +1015,28 @@
         deviceUnsubscribe: null,
         resultUnsub: null,
         writeStatus: 'ready',
+
+        // ── App Fetching ──
+        installedApps: [],
+        installAppsCmdId: null,
+
+        // ── Map / GPS ──
+        locationMap: null,
+        locationMarker: null,
+        locationCircle: null,
+        trackingActive: false,
+        trackingPath: [],
+        trackingPolyline: null,
+        mapSectionVisible: false,
+
+        // ── History ──
+        historyData: [],
+        historyFiltered: [],
+        historySortKey: 'time',
+        historySortAsc: false,
+
+        // ── Seekbar tracked IDs ──
+        seekbarIdCounter: 0,
     };
 
     let firebaseInitialized = false;
@@ -660,7 +1047,7 @@
     let pingCount = 0;
 
     // ═══════════════════════════════════════════════════════
-    //  FIREBASE CONFIG — YOUR ORIGINAL WORKING CONFIG
+    //  FIREBASE CONFIG
     // ═══════════════════════════════════════════════════════
     function getConfig() {
         const stored = localStorage.getItem('mc_firebase_config');
@@ -787,7 +1174,7 @@
     }
 
     // ═══════════════════════════════════════════════════════
-    //  AUTO-PING — with write confirmation
+    //  AUTO-PING
     // ═══════════════════════════════════════════════════════
     async function pingOfflineDevices() {
         if (!firebaseInitialized || !db || state.devices.length === 0) return;
@@ -1006,12 +1393,18 @@
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         document.getElementById('view' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
         document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
-        const idx = name === 'dashboard' ? 0 : 1;
-        document.querySelectorAll('.sidebar-nav a')[idx]?.classList.add('active');
+        const navLinks = document.querySelectorAll('.sidebar-nav a');
+        if (name === 'dashboard') navLinks[0]?.classList.add('active');
+        else if (name === 'command') navLinks[1]?.classList.add('active');
+        else if (name === 'history') navLinks[2]?.classList.add('active');
 
         if (name !== 'command' && state.resultUnsub) {
             state.resultUnsub();
             state.resultUnsub = null;
+        }
+
+        if (name === 'history' && state.selectedDeviceId) {
+            loadFullHistory();
         }
 
         if (name === 'dashboard') {
@@ -1025,7 +1418,7 @@
     }
 
     // ═══════════════════════════════════════════════════════
-    //  PERSISTENT PENDING COMMAND TRACKER
+    //  PENDING COMMAND LOADER
     // ═══════════════════════════════════════════════════════
     async function loadPendingResultsForDevice(deviceId) {
         if (!db || !firebaseInitialized) return;
@@ -1108,6 +1501,16 @@
                             toast(data.status === 'ok' ? '✓ ' + existing.name : '✗ ' + existing.name,
                                   data.status === 'ok' ? 'success' : 'error');
                         }
+                        if (data.action === 'location_update' || data.action === 'get_location') {
+                            handleLocationResult(data, docId);
+                        }
+                    }
+                    if (change.type === 'modified') {
+                        const docId = change.doc.id;
+                        const data = change.doc.data();
+                        if (data.action === 'location_update' || data.action === 'get_location') {
+                            handleLocationResult(data, docId);
+                        }
                     }
                 });
             }, err => {
@@ -1115,18 +1518,377 @@
             });
     }
 
+    // ═══════════════════════════════════════════════════════
+    //  MAP / LOCATION
+    // ═══════════════════════════════════════════════════════
+    function initMap() {
+        const mapContainer = document.getElementById('liveMap');
+        if (!mapContainer) return;
+        if (state.locationMap) { state.locationMap.remove(); state.locationMap = null; }
+
+        state.locationMap = L.map(mapContainer, {
+            zoomControl: true,
+            attributionControl: true
+        }).setView([0, 0], 2);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 19
+        }).addTo(state.locationMap);
+
+        state.locationMarker = null;
+        state.locationCircle = null;
+        state.trackingPath = [];
+        state.trackingPolyline = null;
+
+        setTimeout(() => { if (state.locationMap) state.locationMap.invalidateSize(); }, 300);
+        appendDiag('🗺️ Map initialized');
+    }
+
+    function showMapSection(title) {
+        const section = document.getElementById('gpsMapSection');
+        section.classList.add('visible');
+        state.mapSectionVisible = true;
+        document.getElementById('gpsMapTitle').textContent = title || '📍 Location';
+        if (!state.locationMap) { initMap(); }
+        else { setTimeout(() => { if (state.locationMap) state.locationMap.invalidateSize(); }, 300); }
+    }
+
+    function closeMapSection() {
+        document.getElementById('gpsMapSection').classList.remove('visible');
+        state.mapSectionVisible = false;
+    }
+
+    function updateMapDisplay(lat, lng, label) {
+        showMapSection(label || '📍 Location');
+        if (!state.locationMap) { initMap(); setTimeout(() => updateMapDisplay(lat, lng, label), 500); return; }
+
+        const coordsEl = document.getElementById('mapCoords');
+        coordsEl.textContent = `📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+        if (state.locationMarker) state.locationMap.removeLayer(state.locationMarker);
+        if (state.locationCircle) state.locationMap.removeLayer(state.locationCircle);
+
+        state.locationMarker = L.marker([lat, lng]).addTo(state.locationMap)
+            .bindPopup(`<b>${label || 'Location'}</b><br>${lat.toFixed(6)}, ${lng.toFixed(6)}`)
+            .openPopup();
+
+        state.locationCircle = L.circle([lat, lng], {
+            radius: 50, color: '#6c5ce7', fillColor: '#6c5ce7', fillOpacity: 0.15, weight: 1
+        }).addTo(state.locationMap);
+
+        state.locationMap.setView([lat, lng], 16, { animate: true });
+
+        if (state.trackingActive) {
+            state.trackingPath.push([lat, lng]);
+            if (state.trackingPolyline) state.locationMap.removeLayer(state.trackingPolyline);
+            if (state.trackingPath.length > 1) {
+                state.trackingPolyline = L.polyline(state.trackingPath, {
+                    color: '#a78bfa', weight: 3, opacity: 0.7, dashArray: '8, 8'
+                }).addTo(state.locationMap);
+            }
+        }
+    }
+
+    function expandMap() {
+        const modal = document.getElementById('mapModal');
+        modal.classList.add('open');
+
+        let lat = 0, lng = 0;
+        if (state.locationMarker) { const ll = state.locationMarker.getLatLng(); lat = ll.lat; lng = ll.lng; }
+
+        document.getElementById('mapModalTitle').textContent =
+            state.trackingActive ? '📍 Live GPS Tracking' : '📍 Location View';
+
+        setTimeout(() => {
+            const container = document.getElementById('fullMapContainer');
+            if (window._fullMap) { window._fullMap.remove(); window._fullMap = null; }
+
+            const fullMap = L.map(container, { zoomControl: true, attributionControl: true })
+                .setView([lat || 0, lng || 0], lat ? 16 : 2);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>',
+                maxZoom: 19
+            }).addTo(fullMap);
+
+            if (lat && lng) {
+                L.marker([lat, lng]).addTo(fullMap)
+                    .bindPopup(`📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}`).openPopup();
+                if (state.trackingActive && state.trackingPath.length > 1) {
+                    L.polyline(state.trackingPath, {
+                        color: '#a78bfa', weight: 3, opacity: 0.7, dashArray: '8, 8'
+                    }).addTo(fullMap);
+                }
+            }
+            window._fullMap = fullMap;
+            setTimeout(() => fullMap.invalidateSize(), 200);
+        }, 100);
+    }
+
+    function closeMapModal() {
+        document.getElementById('mapModal').classList.remove('open');
+        if (window._fullMap) { window._fullMap.remove(); window._fullMap = null; }
+    }
+
+    function handleLocationResult(data, docId) {
+        let lat = null, lng = null;
+        let output = data.output || '';
+
+        if (typeof output === 'string') {
+            try {
+                const parsed = JSON.parse(output);
+                if (parsed.lat !== undefined) lat = parseFloat(parsed.lat);
+                else if (parsed.latitude !== undefined) lat = parseFloat(parsed.latitude);
+                if (parsed.lng !== undefined) lng = parseFloat(parsed.lng);
+                else if (parsed.longitude !== undefined) lng = parseFloat(parsed.longitude);
+                else if (parsed.lon !== undefined) lng = parseFloat(parsed.lon);
+            } catch(e) {
+                const latMatch = output.match(/lat(?:itude)?["']?\s*[:=]\s*([-\d.]+)/i);
+                const lngMatch = output.match(/(?:lng|lon(?:gitude)?)["']?\s*[:=]\s*([-\d.]+)/i);
+                if (latMatch) lat = parseFloat(latMatch[1]);
+                if (lngMatch) lng = parseFloat(lngMatch[1]);
+            }
+        } else if (typeof output === 'object') {
+            if (output.lat !== undefined) lat = parseFloat(output.lat);
+            else if (output.latitude !== undefined) lat = parseFloat(output.latitude);
+            if (output.lng !== undefined) lng = parseFloat(output.lng);
+            else if (output.longitude !== undefined) lng = parseFloat(output.longitude);
+        }
+
+        if (!lat && data.lat !== undefined) lat = parseFloat(data.lat);
+        if (!lng && data.lng !== undefined) lng = parseFloat(data.lng);
+        if (!lat && data.latitude !== undefined) lat = parseFloat(data.latitude);
+        if (!lng && data.longitude !== undefined) lng = parseFloat(data.longitude);
+
+        if (lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng)) {
+            const label = data.action === 'location_update' ? '📍 Live Tracking Update' : '📍 GPS Fix';
+            updateMapDisplay(lat, lng, label);
+            toast(`📍 Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}`, 'info');
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  TRACKING
+    // ═══════════════════════════════════════════════════════
+    function startTrackingOnDevice(intervalMs) {
+        if (state.trackingActive) { toast('Tracking already active', 'info'); return; }
+        const cmd = COMMANDS.loc.find(c => c.action === 'start_tracking');
+        if (!cmd) return;
+        const params = { interval_ms: intervalMs || '5000' };
+        executeCmd(cmd, params);
+        state.trackingActive = true;
+        state.trackingPath = [];
+        updateTrackingUI();
+        toast('📍 GPS Tracking started', 'success');
+        showMapSection('📍 Live GPS Tracking');
+    }
+
+    function stopTrackingOnDevice() {
+        const cmd = COMMANDS.loc.find(c => c.action === 'stop_tracking');
+        if (cmd) executeCmd(cmd, {});
+        state.trackingActive = false;
+        if (state.trackingInterval) { clearInterval(state.trackingInterval); state.trackingInterval = null; }
+        updateTrackingUI();
+        toast('⏹️ GPS Tracking stopped', 'info');
+    }
+
+    function updateTrackingUI() {
+        const statusEl = document.getElementById('gpsTrackingStatus');
+        const sidebarTracking = document.getElementById('sidebarTrackingStatus');
+        if (state.trackingActive) {
+            statusEl.className = 'tracking-badge active';
+            statusEl.innerHTML = '● Tracking';
+            if (sidebarTracking) sidebarTracking.innerHTML = '📍 Tracking: <span style="color:#34d399;">ACTIVE</span>';
+        } else {
+            statusEl.className = 'tracking-badge inactive';
+            statusEl.innerHTML = '○ Not tracking';
+            if (sidebarTracking) sidebarTracking.innerHTML = '📍 Tracking: <span style="color:#6b7280;">OFF</span>';
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  FIND PHONE
+    // ═══════════════════════════════════════════════════════
+    function executeFindPhone(action) {
+        const deviceId = state.selectedDeviceId;
+        if (!deviceId || !firebaseInitialized || !db) { toast('No device selected or not connected', 'error'); return; }
+
+        const cmdId = Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+        const now = new Date().toLocaleTimeString();
+        const actionLabel = action === 'start' ? 'Find Phone (Ring)' : 'Find Phone (Stop)';
+
+        state.results.unshift({
+            id: cmdId, action: 'find_phone', name: actionLabel,
+            status: 'sending', output: `Sending ${action} command…`, time: now, params: { action: action }
+        });
+        renderCmdResults();
+        setWriteStatus('writing', 'writing find_phone command…');
+
+        const params = { action: action };
+
+        db.collection('commands').doc(cmdId).set({
+            deviceId: deviceId, action: 'find_phone', params: params, createdAt: Date.now()
+        }).then(() => {
+            updateCmdResult(cmdId, 'sent', `Find Phone ${action} command written. Waiting for device…`);
+            toast(`→ ${action === 'start' ? '🔔 Ringing' : '🔕 Stopping'} phone`, 'info');
+            setWriteStatus('ready', 'Write OK');
+            state.commandsSent++;
+            document.getElementById('cmdCountDisplay').textContent = state.commandsSent;
+
+            const unsub = db.collection('results').doc(cmdId).onSnapshot(snap => {
+                if (snap.exists) {
+                    const d = snap.data();
+                    updateCmdResult(cmdId, d.status || 'error', d.output || '—');
+                    unsub();
+                    toast(d.status === 'ok' ? '✓ ' + actionLabel : '✗ ' + actionLabel,
+                          d.status === 'ok' ? 'success' : 'error');
+                }
+            });
+            setTimeout(() => {
+                const found = state.results.find(r => r.id === cmdId);
+                if (found && (found.status === 'sent' || found.status === 'pending')) {
+                    updateCmdResult(cmdId, 'pending', '⏱️ Device did not respond in 30s.');
+                    unsub();
+                }
+            }, 30000);
+        }).catch(e => {
+            updateCmdResult(cmdId, 'write_fail', '❌ Write failed: ' + e.message);
+            toast('Write failed: ' + e.message, 'error');
+            setWriteStatus('error', 'Write failed: ' + e.message);
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  FETCH INSTALLED APPS
+    // ═══════════════════════════════════════════════════════
+    function fetchInstalledApps() {
+        const deviceId = state.selectedDeviceId;
+        if (!deviceId || !firebaseInitialized || !db) { toast('No device selected or not connected', 'error'); return; }
+
+        const statusEl = document.getElementById('fetchAppsStatus');
+        const btn = document.getElementById('fetchAppsBtn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Fetching…';
+        statusEl.textContent = '⏳ Sending command to fetch installed apps…';
+
+        const cmdId = Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '_apps';
+        state.installAppsCmdId = cmdId;
+
+        db.collection('commands').doc(cmdId).set({
+            deviceId: deviceId, action: 'get_installed_apps', params: {}, createdAt: Date.now()
+        }).then(() => {
+            toast('→ Fetching installed apps…', 'info');
+            statusEl.textContent = '⏳ Waiting for device response…';
+
+            const unsub = db.collection('results').doc(cmdId).onSnapshot(snap => {
+                if (snap.exists) {
+                    const data = snap.data();
+                    if (data.status === 'ok') { parseAndPopulateApps(data.output || ''); }
+                    else { statusEl.textContent = '❌ Device returned error: ' + (data.output || 'unknown'); }
+                    btn.disabled = false;
+                    btn.textContent = '📦 Fetch Apps';
+                    unsub();
+                }
+            });
+            setTimeout(() => {
+                if (btn.disabled) {
+                    btn.disabled = false; btn.textContent = '📦 Fetch Apps';
+                    statusEl.textContent = '⏱️ Timeout — device may be offline. Try again.'; unsub();
+                }
+            }, 30000);
+        }).catch(e => {
+            btn.disabled = false; btn.textContent = '📦 Fetch Apps';
+            statusEl.textContent = '❌ Write failed: ' + e.message;
+            toast('Failed: ' + e.message, 'error');
+        });
+    }
+
+    function parseAndPopulateApps(output) {
+        const select = document.getElementById('openAppSelect');
+        const statusEl = document.getElementById('fetchAppsStatus');
+        select.innerHTML = '<option value="">— Select installed app —</option>';
+        let apps = [];
+
+        if (typeof output === 'string') {
+            try {
+                const parsed = JSON.parse(output);
+                if (Array.isArray(parsed)) apps = parsed;
+                else if (parsed.apps && Array.isArray(parsed.apps)) apps = parsed.apps;
+                else if (parsed.packages && Array.isArray(parsed.packages)) apps = parsed.packages;
+            } catch(e) {
+                const lines = output.split('\n').filter(l => l.trim());
+                apps = lines.map(line => {
+                    const pipe = line.split('|');
+                    if (pipe.length >= 2) return { appName: pipe[0].trim(), packageName: pipe[1].trim() };
+                    const parenMatch = line.match(/^(.+?)\s*\(([^)]+)\)/);
+                    if (parenMatch) return { appName: parenMatch[1].trim(), packageName: parenMatch[2].trim() };
+                    const colon = line.split(':');
+                    if (colon.length >= 2) return { appName: colon[0].trim(), packageName: colon.slice(1).join(':').trim() };
+                    return { appName: line.trim(), packageName: line.trim() };
+                });
+            }
+        } else if (typeof output === 'object' && output !== null) {
+            if (Array.isArray(output)) apps = output;
+            else if (output.apps && Array.isArray(output.apps)) apps = output.apps;
+        }
+
+        if (apps.length === 0) {
+            statusEl.textContent = '⚠️ No apps parsed. Try typing package name manually.';
+            return;
+        }
+
+        state.installedApps = apps;
+        apps.sort((a, b) => (a.appName || a.packageName || '').localeCompare(b.appName || b.packageName || ''));
+        apps.forEach(app => {
+            const name = app.appName || app.name || app.packageName || 'Unknown';
+            const pkg = app.packageName || app.pkg || app.id || name;
+            const opt = document.createElement('option');
+            opt.value = pkg;
+            opt.textContent = `${name} (${pkg})`;
+            select.appendChild(opt);
+        });
+        statusEl.textContent = `✅ Found ${apps.length} apps. Select one or type package name.`;
+        toast(`📦 ${apps.length} apps loaded`, 'success');
+    }
+
+    function onAppSelectChange() {
+        const select = document.getElementById('openAppSelect');
+        const input = document.getElementById('openAppPackageInput');
+        if (select.value) input.value = select.value;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  SELECT DEVICE
+    // ═══════════════════════════════════════════════════════
     function selectDevice(deviceId) {
         state.selectedDeviceId = deviceId;
         state.results = [];
         state.commandsSent = 0;
+        state.installedApps = [];
+        state.trackingActive = false;
+
         document.getElementById('cmdCountDisplay').textContent = '0';
         document.getElementById('cmdLastStatus').textContent = 'Ready';
         document.getElementById('cmdLastStatus').className = 'value green';
         document.getElementById('cmdDeviceDisplay').textContent = deviceId.slice(0, 8) + '…' + deviceId.slice(-6);
         document.getElementById('cmdDeviceDisplay').title = deviceId;
+        document.getElementById('cmdHistoryBtn').style.display = 'inline-flex';
+
+        // Enable history nav
+        const histNav = document.getElementById('navHistory');
+        histNav.style.opacity = '1';
+        histNav.style.pointerEvents = 'auto';
+
         renderCmdCategories('device');
         renderCmdResults();
         showView('command');
+
+        closeMapSection();
+        if (state.locationMap) { state.locationMap.remove(); state.locationMap = null; }
+        state.trackingPath = [];
+        updateTrackingUI();
+
         toast('Controlling: ' + deviceId.slice(0, 12) + '…', 'info');
 
         setTimeout(() => {
@@ -1135,8 +1897,17 @@
         }, 1000);
     }
 
+    function openHistoryForDevice() {
+        if (state.selectedDeviceId) {
+            document.getElementById('histDeviceDisplay').textContent =
+                state.selectedDeviceId.slice(0, 8) + '…' + state.selectedDeviceId.slice(-6);
+            document.getElementById('histDeviceDisplay').title = state.selectedDeviceId;
+            showView('history');
+        }
+    }
+
     // ═══════════════════════════════════════════════════════
-    //  COMMAND CENTER — WITH CONSOLIDATED MODAL
+    //  COMMAND CENTER — RENDER
     // ═══════════════════════════════════════════════════════
     function renderCmdCategories(activeCat) {
         const grid = document.getElementById('commandGrid');
@@ -1152,7 +1923,7 @@
         let cards = '<div class="cmd-grid">';
         cmds.forEach(cmd => {
             const hp = cmd.params && Object.keys(cmd.params).length > 0;
-            const hasSpecial = cmd.isToggle || cmd.isCamera || cmd.isHideShow || cmd.isOpenApp || cmd.hasLimit;
+            const hasSpecial = cmd.isToggle || cmd.isCamera || cmd.isHideShow || cmd.isOpenApp || cmd.hasLimit || cmd.isFindPhone || cmd.isSmsFolder || cmd.isTrackingToggle || cmd.hasSeekbar;
             cards += '<div class="cmd-card"><div class="cmd-dot ' + ((hp || hasSpecial) ? 'has-params' : '') + '"></div><div class="cmd-icon">' + cmd.icon + '</div><div class="cmd-name">' + cmd.name + '</div></div>';
         });
         cards += '</div>';
@@ -1162,7 +1933,7 @@
             if (!cmd) return;
             el.addEventListener('click', () => {
                 const hp = cmd.params && Object.keys(cmd.params).length > 0;
-                if (hp || cmd.isToggle || cmd.isCamera || cmd.isHideShow || cmd.isOpenApp || cmd.hasLimit || cmd.simSlot) {
+                if (hp || cmd.isToggle || cmd.isCamera || cmd.isHideShow || cmd.isOpenApp || cmd.hasLimit || cmd.simSlot || cmd.isFindPhone || cmd.isSmsFolder || cmd.isTrackingToggle || cmd.hasSeekbar) {
                     showParamModal(cmd);
                 } else {
                     executeCmd(cmd, {});
@@ -1171,6 +1942,9 @@
         });
     }
 
+    // ═══════════════════════════════════════════════════════
+    //  PARAM MODAL — WITH SEEK BAR SUPPORT
+    // ═══════════════════════════════════════════════════════
     function showParamModal(cmd) {
         const modal = document.getElementById('paramModal');
         document.getElementById('modalTitle').textContent = cmd.icon + ' ' + cmd.name;
@@ -1179,45 +1953,188 @@
         const fields = document.getElementById('modalFields');
         fields.innerHTML = '';
 
-        // Hide all special sections first
         document.getElementById('modalToggleSelector').style.display = 'none';
         document.getElementById('modalCameraSelector').style.display = 'none';
         document.getElementById('modalHideShowSelector').style.display = 'none';
         document.getElementById('modalSimSelector').style.display = 'none';
         document.getElementById('modalLimitField').style.display = 'none';
+        document.getElementById('modalSmsFolderSelector').style.display = 'none';
+        document.getElementById('modalFindPhone').style.display = 'none';
+        document.getElementById('modalOpenApp').style.display = 'none';
+        document.getElementById('modalDefaultButtons').style.display = 'flex';
+        document.getElementById('modalFindPhoneButtons').style.display = 'none';
 
-        // Show special selectors based on command flags
-        if (cmd.isToggle) {
-            document.getElementById('modalToggleSelector').style.display = 'block';
+        // Handle Find Phone
+        if (cmd.isFindPhone) {
+            document.getElementById('modalFindPhone').style.display = 'block';
+            document.getElementById('modalDefaultButtons').style.display = 'none';
+            document.getElementById('modalFindPhoneButtons').style.display = 'flex';
+            document.getElementById('modalSub').textContent = '🔔 Start the phone ringing or stop it immediately';
+            state.pendingModalCmd = cmd;
+            modal.classList.add('open');
+            return;
         }
-        if (cmd.isCamera) {
-            document.getElementById('modalCameraSelector').style.display = 'block';
+
+        // SMS Folder
+        if (cmd.isSmsFolder) {
+            document.getElementById('modalSmsFolderSelector').style.display = 'block';
         }
-        if (cmd.isHideShow) {
-            document.getElementById('modalHideShowSelector').style.display = 'block';
+
+        // Open App
+        if (cmd.isOpenApp) {
+            document.getElementById('modalOpenApp').style.display = 'block';
+            document.getElementById('openAppPackageInput').value = '';
+            document.getElementById('openAppSelect').innerHTML = '<option value="">— Select installed app —</option>';
+            document.getElementById('fetchAppsStatus').textContent = 'Click "Fetch Apps" to load installed apps from device';
+            document.getElementById('fetchAppsBtn').disabled = false;
+            document.getElementById('fetchAppsBtn').textContent = '📦 Fetch Apps';
         }
+
+        if (cmd.isToggle) document.getElementById('modalToggleSelector').style.display = 'block';
+        if (cmd.isCamera) document.getElementById('modalCameraSelector').style.display = 'block';
+        if (cmd.isHideShow) document.getElementById('modalHideShowSelector').style.display = 'block';
         if (cmd.hasLimit) {
             document.getElementById('modalLimitField').style.display = 'block';
             document.getElementById('limitInput').value = '50';
         }
-        if (cmd.simSlot) {
-            document.getElementById('modalSimSelector').style.display = 'block';
+        if (cmd.simSlot) document.getElementById('modalSimSelector').style.display = 'block';
+
+        // GPS Tracking with inline toggle
+        if (cmd.isTrackingToggle) {
+            document.getElementById('modalSub').textContent =
+                state.trackingActive
+                    ? '📍 Tracking is currently ACTIVE.'
+                    : '📍 Start GPS tracking with interval. Live location will show on map.';
+
+            if (cmd.params) {
+                Object.entries(cmd.params).forEach(([key, val]) => {
+                    if (key === 'limit' && cmd.hasLimit) return;
+                    const label = document.createElement('label');
+                    label.textContent = key.replace(/_/g, ' ');
+                    const input = document.createElement('input');
+                    input.id = 'modal_param_' + key;
+                    input.value = val;
+                    input.dataset.paramKey = key;
+                    if (key === 'interval_ms') {
+                        const hint = document.createElement('div');
+                        hint.style.cssText = 'font-size:10px;color:#5a6070;margin-top:2px;';
+                        hint.textContent = 'How often to send location updates (ms). Lower = more frequent battery drain.';
+                        fields.appendChild(hint);
+                    }
+                    fields.appendChild(label);
+                    fields.appendChild(input);
+                });
+            }
+
+            const toggleDiv = document.createElement('div');
+            toggleDiv.style.cssText = 'margin-top:16px;display:flex;gap:10px;';
+            const startBtn = document.createElement('button');
+            startBtn.className = 'btn btn-success';
+            startBtn.style.flex = '1'; startBtn.style.justifyContent = 'center';
+            startBtn.innerHTML = '▶️ Start Tracking';
+            startBtn.onclick = () => {
+                const interval = document.getElementById('modal_param_interval_ms')?.value || '5000';
+                closeParamModal(); startTrackingOnDevice(interval);
+            };
+            const stopBtn = document.createElement('button');
+            stopBtn.className = 'btn btn-stop';
+            stopBtn.style.flex = '1'; stopBtn.style.justifyContent = 'center';
+            stopBtn.innerHTML = '⏹️ Stop Tracking';
+            stopBtn.onclick = () => { closeParamModal(); stopTrackingOnDevice(); };
+            if (state.trackingActive) { startBtn.disabled = true; startBtn.style.opacity = '0.5'; }
+            else { stopBtn.disabled = true; stopBtn.style.opacity = '0.5'; }
+            toggleDiv.appendChild(startBtn); toggleDiv.appendChild(stopBtn);
+            fields.appendChild(toggleDiv);
+
+            state.pendingModalCmd = cmd;
+            modal.classList.add('open');
+            return;
         }
 
-        // Render regular text params (skip special-handled ones)
-        if (cmd.params) {
+        // ═══ SEEK BAR SUPPORT ═══
+        if (cmd.hasSeekbar) {
+            const sb = cmd.hasSeekbar;
+            const sbId = 'seekbar_' + (++state.seekbarIdCounter);
+
+            const group = document.createElement('div');
+            group.className = 'seekbar-group';
+
+            const labelRow = document.createElement('div');
+            labelRow.className = 'seekbar-label';
+            labelRow.innerHTML = `<span>${sb.label || 'Level'}</span><span class="seekbar-pct" id="${sbId}_pct">50%</span>`;
+            group.appendChild(labelRow);
+
+            const range = document.createElement('input');
+            range.type = 'range';
+            range.id = sbId + '_range';
+            range.min = sb.min || 0;
+            range.max = sb.max || 100;
+            range.value = Math.round((sb.min || 0 + sb.max || 100) / 2);
+            range.step = 1;
+
+            // Fill initial gradient
+            const pct = ((range.value - range.min) / (range.max - range.min)) * 100;
+            range.style.background =
+                `linear-gradient(to right, #6c5ce7 0%, #6c5ce7 ${pct}%, #1e2230 ${pct}%, #1e2230 100%)`;
+
+            range.oninput = function() {
+                const v = parseInt(this.value);
+                const p = ((v - this.min) / (this.max - this.min)) * 100;
+                this.style.background =
+                    `linear-gradient(to right, #6c5ce7 0%, #6c5ce7 ${p}%, #1e2230 ${p}%, #1e2230 100%)`;
+                document.getElementById(sbId + '_pct').textContent =
+                    (sb.max <= 255 ? Math.round((v / sb.max) * 100) : v) + '%';
+                document.getElementById(sbId + '_val_display').textContent = `Raw: ${v}`;
+            };
+
+            group.appendChild(range);
+
+            const valDisplay = document.createElement('div');
+            valDisplay.className = 'seekbar-val-display';
+            valDisplay.id = sbId + '_val_display';
+            valDisplay.textContent = `Raw: ${range.value}`;
+            group.appendChild(valDisplay);
+
+            // Hidden input to store value for confirmation
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = sbId + '_hidden';
+            hiddenInput.dataset.paramKey = sb.key || 'level';
+            hiddenInput.value = range.value;
+            group.appendChild(hiddenInput);
+
+            // Update hidden on range change
+            range.addEventListener('input', function() {
+                document.getElementById(sbId + '_hidden').value = this.value;
+            });
+
+            fields.appendChild(group);
+
+            // If there are other params (like 'stream' for volume), show them
+            if (cmd.params) {
+                Object.entries(cmd.params).forEach(([key, val]) => {
+                    if (key === sb.key) return; // skip the seekbar key
+                    const label = document.createElement('label');
+                    label.textContent = key.replace(/_/g, ' ');
+                    const input = document.createElement('input');
+                    input.id = 'modal_param_' + key;
+                    input.value = val;
+                    input.dataset.paramKey = key;
+                    fields.appendChild(label);
+                    fields.appendChild(input);
+                });
+            }
+        } else if (cmd.params) {
+            // Regular text params
             Object.entries(cmd.params).forEach(([key, val]) => {
-                // Skip limit if hasLimit handles it separately
                 if (key === 'limit' && cmd.hasLimit) return;
+                if (cmd.isOpenApp && (key === 'packageName' || key === 'pkg' || key === 'package')) return;
                 const label = document.createElement('label');
-                label.textContent = key;
+                label.textContent = key.replace(/_/g, ' ');
                 const input = document.createElement('input');
                 input.id = 'modal_param_' + key;
                 input.value = val;
                 input.dataset.paramKey = key;
-                if (cmd.isOpenApp && key === 'packageName') {
-                    input.placeholder = 'e.g. com.android.chrome';
-                }
                 fields.appendChild(label);
                 fields.appendChild(input);
             });
@@ -1227,7 +2144,10 @@
         modal.classList.add('open');
     }
 
-    function closeParamModal() { document.getElementById('paramModal').classList.remove('open'); state.pendingModalCmd = null; }
+    function closeParamModal() {
+        document.getElementById('paramModal').classList.remove('open');
+        state.pendingModalCmd = null;
+    }
 
     function onModalConfirm() {
         const cmd = state.pendingModalCmd;
@@ -1235,49 +2155,52 @@
 
         const params = {};
 
-        // Collect regular text params
+        // Regular text inputs
         document.querySelectorAll('#modalFields input').forEach(inp => {
-            params[inp.dataset.paramKey] = inp.value;
+            if (inp.id.startsWith('modal_param_')) {
+                if (inp.dataset.paramKey) params[inp.dataset.paramKey] = inp.value;
+            }
+            // Seekbar hidden input
+            if (inp.type === 'hidden' && inp.dataset.paramKey) {
+                params[inp.dataset.paramKey] = inp.value;
+            }
         });
 
-        // Flashlight toggle
-        if (cmd.isToggle) {
-            const val = document.getElementById('toggleSelect').value;
-            params.state = val;
-        }
+        if (cmd.isToggle) params.state = document.getElementById('toggleSelect').value;
+        if (cmd.isCamera) params.camera = document.getElementById('cameraSelect').value;
+        if (cmd.isHideShow) params.action = document.getElementById('hideShowSelect').value;
+        if (cmd.hasLimit) { const v = document.getElementById('limitInput').value; if (v) params.limit = v; }
+        if (cmd.simSlot) { const v = document.getElementById('simSlotSelect').value; if (v) { params.sim_slot = v; params.sim = v; } }
+        if (cmd.isSmsFolder) params.folder = document.getElementById('smsFolderSelect').value;
 
-        // Camera front/back
-        if (cmd.isCamera) {
-            params.camera = document.getElementById('cameraSelect').value;
-        }
-
-        // Show/Hide App
-        if (cmd.isHideShow) {
-            params.action = document.getElementById('hideShowSelect').value;
-        }
-
-        // Call Log limit
-        if (cmd.hasLimit) {
-            const limitVal = document.getElementById('limitInput').value;
-            if (limitVal) params.limit = limitVal;
-        }
-
-        // SIM slot
-        if (cmd.simSlot) {
-            const simVal = document.getElementById('simSlotSelect').value;
-            if (simVal) {
-                params.sim_slot = simVal;
-                params.sim = simVal;
-            }
+        if (cmd.isOpenApp) {
+            const pkgInput = document.getElementById('openAppPackageInput');
+            if (pkgInput && pkgInput.value.trim()) {
+                params.packageName = pkgInput.value.trim();
+                params.pkg = pkgInput.value.trim();
+            } else { toast('Please enter or select a package name', 'error'); return; }
         }
 
         closeParamModal();
         executeCmd(cmd, params);
     }
 
-    document.getElementById('paramModal').addEventListener('click', function(e) { if (e.target === this) closeParamModal(); });
-    document.getElementById('deleteModal').addEventListener('click', function(e) { if (e.target === this) closeDeleteModal(); });
+    document.getElementById('paramModal').addEventListener('click', function(e) {
+        if (e.target === this) closeParamModal();
+    });
+    document.getElementById('deleteModal').addEventListener('click', function(e) {
+        if (e.target === this) closeDeleteModal();
+    });
+    document.getElementById('mapModal').addEventListener('click', function(e) {
+        if (e.target === this) closeMapModal();
+    });
+    document.getElementById('resultDetailModal').addEventListener('click', function(e) {
+        if (e.target === this) closeResultDetail();
+    });
 
+    // ═══════════════════════════════════════════════════════
+    //  EXECUTE COMMAND
+    // ═══════════════════════════════════════════════════════
     async function executeCmd(cmd, params) {
         const deviceId = state.selectedDeviceId;
         if (!deviceId || !firebaseInitialized || !db) { toast('No device selected or not connected', 'error'); return; }
@@ -1286,27 +2209,17 @@
         const now = new Date().toLocaleTimeString();
         const actionLabel = cmd.name || cmd.action;
 
-        // Show sending state
         state.results.unshift({
-            id: cmdId,
-            action: cmd.action,
-            name: actionLabel,
-            status: 'sending',
-            output: 'Writing to Firestore…',
-            time: now,
-            params: params
+            id: cmdId, action: cmd.action, name: actionLabel,
+            status: 'sending', output: 'Writing to Firestore…', time: now, params: params
         });
         renderCmdResults();
         setWriteStatus('writing', 'writing command…');
 
-        // Write to Firestore
         try {
             const docRef = db.collection('commands').doc(cmdId);
             await docRef.set({
-                deviceId: deviceId,
-                action: cmd.action,
-                params: params,
-                createdAt: Date.now()
+                deviceId: deviceId, action: cmd.action, params: params, createdAt: Date.now()
             });
 
             updateCmdResult(cmdId, 'sent', 'Command written to Firestore. Waiting for device to execute…');
@@ -1315,12 +2228,12 @@
             state.commandsSent++;
             document.getElementById('cmdCountDisplay').textContent = state.commandsSent;
 
-            // Listen for result with 30s timeout
             const unsub = db.collection('results').doc(cmdId).onSnapshot(snap => {
                 if (snap.exists) {
                     const d = snap.data();
                     updateCmdResult(cmdId, d.status || 'error', d.output || '—');
                     unsub();
+                    if (cmd.action === 'get_location') handleLocationResult(d, cmdId);
                     toast(d.status === 'ok' ? '✓ ' + actionLabel : '✗ ' + actionLabel,
                           d.status === 'ok' ? 'success' : 'error');
                 }
@@ -1330,10 +2243,8 @@
                 if (found && (found.status === 'sent' || found.status === 'pending')) {
                     updateCmdResult(cmdId, 'pending', '⏱️ Device did not respond in 30s. Result will appear when device comes online.');
                     unsub();
-                    toast('⏱️ ' + actionLabel + ' — waiting for device', 'info');
                 }
             }, 30000);
-
         } catch (e) {
             updateCmdResult(cmdId, 'write_fail', '❌ Firestore write failed: ' + e.message);
             toast('Write failed: ' + e.message, 'error');
@@ -1341,12 +2252,141 @@
         }
     }
 
+    // ═══════════════════════════════════════════════════════
+    //  FORMAT RESULTS — Structured output for SMS, apps, contacts, etc.
+    // ═══════════════════════════════════════════════════════
+    function formatResultOutput(action, output) {
+        if (!output || output === '—') return escapeHtml(output);
+
+        // Try to parse and structure the output based on action type
+        const rawHtml = escapeHtml(String(output));
+
+        // Actions that benefit from structured display
+        const structActions = ['list_sms', 'get_sms_threads', 'get_contacts', 'get_call_log',
+                              'get_installed_apps', 'get_running_apps', 'get_accounts',
+                              'list_directory', 'get_wifi_networks', 'get_cell_towers',
+                              'get_device_info', 'get_battery_info', 'get_network_info'];
+
+        if (!structActions.includes(action)) return rawHtml;
+
+        let parsed = null;
+        // Try JSON parse
+        try {
+            if (typeof output === 'string') parsed = JSON.parse(output);
+            else if (typeof output === 'object') parsed = output;
+        } catch(e) {}
+
+        if (!parsed) {
+            // For list_sms without JSON, try to show as structured if line-based
+            if (action === 'list_sms' && typeof output === 'string') {
+                const lines = output.split('\n').filter(l => l.trim());
+                if (lines.length > 1) {
+                    let html = '<div class="ri-structured" style="max-height:250px;">';
+                    lines.forEach((line, i) => {
+                        // Try to parse SMS format: from|body|date or similar
+                        const parts = line.split(/[|,]/);
+                        if (parts.length >= 2) {
+                            html += `<div class="struct-row"><span class="struct-key">#${i+1}</span><span class="struct-val">${escapeHtml(line)}</span></div>`;
+                        } else {
+                            html += `<div class="struct-row"><span class="struct-key">#${i+1}</span><span class="struct-val">${escapeHtml(line)}</span></div>`;
+                        }
+                    });
+                    html += '</div>';
+                    return html + '<div class="struct-toggle" onclick="showRawResult(this)">Show raw output</div>';
+                }
+            }
+            return rawHtml;
+        }
+
+        // If it's an array, render as structured table
+        if (Array.isArray(parsed)) {
+            if (parsed.length === 0) return '<span style="color:#6b7280;">(empty list)</span>';
+            let html = `<div class="ri-structured"><span style="font-size:10px;color:#5a6070;display:block;margin-bottom:4px;">📋 ${parsed.length} items</span>`;
+            parsed.forEach((item, idx) => {
+                if (typeof item === 'object') {
+                    const keys = Object.keys(item);
+                    html += `<div class="struct-row" style="cursor:pointer;" onclick="showResultDetail('${escapeHtml(JSON.stringify(item))}')">`;
+                    html += `<span class="struct-key" style="min-width:30px;">#${idx+1}</span>`;
+                    // Show first 2-3 fields as preview
+                    const previewKeys = keys.slice(0, 3);
+                    previewKeys.forEach((k, ki) => {
+                        const v = String(item[k] || '').slice(0, 60);
+                        if (k.toLowerCase().includes('body') || k.toLowerCase().includes('text')) {
+                            html += `<span class="struct-val sms-text">${escapeHtml(v)}</span>`;
+                        } else {
+                            html += `<span class="struct-val">${escapeHtml(v)}${ki < previewKeys.length-1 ? ' · ' : ''}</span>`;
+                        }
+                    });
+                    if (keys.length > 3) html += `<span class="struct-val" style="color:#6c5ce7;">+${keys.length-3} fields</span>`;
+                    html += `</div>`;
+                } else {
+                    html += `<div class="struct-row"><span class="struct-key">#${idx+1}</span><span class="struct-val">${escapeHtml(String(item))}</span></div>`;
+                }
+            });
+            html += '</div>';
+            html += '<div class="struct-toggle" onclick="showRawResult(this)">Show raw JSON</div>';
+            return html;
+        }
+
+        // If it's a single object, show key-value pairs
+        if (typeof parsed === 'object') {
+            let html = '<div class="ri-structured">';
+            Object.entries(parsed).forEach(([k, v]) => {
+                const valStr = typeof v === 'object' ? JSON.stringify(v).slice(0, 100) : String(v).slice(0, 100);
+                html += `<div class="struct-row"><span class="struct-key">${escapeHtml(k)}</span><span class="struct-val">${escapeHtml(valStr)}</span></div>`;
+            });
+            html += '</div>';
+            html += '<div class="struct-toggle" onclick="showRawResult(this)">Show raw output</div>';
+            return html;
+        }
+
+        return rawHtml;
+    }
+
+    function showRawResult(el) {
+        // Toggle: show raw output vs structured
+        const item = el.closest('.result-item');
+        if (!item) return;
+        const outputDiv = item.querySelector('.ri-output');
+        const structDiv = item.querySelector('.ri-structured');
+        if (!outputDiv) return;
+
+        // Get the raw text from data attribute or rebuild
+        if (el.textContent === 'Show raw output') {
+            el.textContent = 'Show structured view';
+            if (structDiv) structDiv.style.display = 'none';
+            outputDiv.style.display = 'block';
+        } else {
+            el.textContent = 'Show raw output';
+            if (structDiv) structDiv.style.display = '';
+            outputDiv.style.display = 'none';
+        }
+    }
+
+    function showResultDetail(jsonStr) {
+        try {
+            const data = JSON.parse(jsonStr);
+            const modal = document.getElementById('resultDetailModal');
+            document.getElementById('rdTitle').textContent = '📄 Item Detail';
+            document.getElementById('rdMeta').textContent = `Type: ${typeof data === 'object' ? 'Object' : typeof data}`;
+            const body = document.getElementById('rdBody');
+            body.textContent = JSON.stringify(data, null, 2);
+            modal.classList.add('open');
+        } catch(e) {
+            toast('Could not parse detail', 'error');
+        }
+    }
+
+    function closeResultDetail() {
+        document.getElementById('resultDetailModal').classList.remove('open');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  RENDER RESULTS — With structured output
+    // ═══════════════════════════════════════════════════════
     function updateCmdResult(id, status, output) {
         const found = state.results.find(r => r.id === id);
-        if (found) {
-            found.status = status;
-            found.output = output;
-        }
+        if (found) { found.status = status; found.output = output; }
         renderCmdResults();
         const lastStatusEl = document.getElementById('cmdLastStatus');
         if (status === 'ok') { lastStatusEl.textContent = 'OK'; lastStatusEl.className = 'value green'; }
@@ -1364,15 +2404,25 @@
         document.getElementById('cmdResultCount').textContent = count + ' results';
         document.getElementById('cmdResultCount2').textContent = count + ' results';
         if (count === 0) { body.innerHTML = '<div class="empty">Results appear here</div>'; return; }
+
         body.innerHTML = state.results.map(r => {
             const statusClass = r.status;
             const canRetry = r.status === 'write_fail' || r.status === 'error';
+            const formattedOutput = formatResultOutput(r.action, r.output);
+            const rawOutput = escapeHtml(r.output);
+            const hasStructured = formattedOutput !== rawOutput;
+
             return '<div class="result-item"><div class="ri-top">' +
                 '<span class="ri-action">' + (r.name || r.action) + '</span>' +
                 '<span class="ri-status ' + statusClass + '">' + statusClass + '</span>' +
                 '<span class="ri-time">' + r.time + '</span>' +
                 (canRetry ? '<button class="retry-btn" onclick="retryCmd(\'' + r.id + '\')">↻ Retry</button>' : '') +
-                '</div><div class="ri-output">' + escapeHtml(r.output) + '</div></div>';
+                '</div>' +
+                (hasStructured
+                    ? `<div class="ri-output" style="display:none;">${rawOutput}</div>${formattedOutput}`
+                    : `<div class="ri-output">${rawOutput}</div>`
+                ) +
+                '</div>';
         }).join('');
     }
 
@@ -1391,10 +2441,7 @@
         renderCmdResults();
         for (const cat of Object.values(COMMANDS)) {
             const match = cat.find(c => c.action === found.action && c.name === found.name);
-            if (match) {
-                executeCmd(match, found.params || {});
-                return;
-            }
+            if (match) { executeCmd(match, found.params || {}); return; }
         }
         executeCmd({ name: found.name, action: found.action, params: found.params || {} }, found.params || {});
     }
@@ -1403,6 +2450,172 @@
         const failed = state.results.find(r => r.status === 'write_fail' || r.status === 'error');
         if (failed) retryCmd(failed.id);
         else toast('No failed commands to retry', 'info');
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  HISTORY TAB
+    // ═══════════════════════════════════════════════════════
+    async function loadFullHistory() {
+        const deviceId = state.selectedDeviceId;
+        if (!deviceId || !firebaseInitialized || !db) {
+            document.getElementById('historyBody').innerHTML =
+                '<tr><td colspan="5" style="text-align:center;padding:40px;color:#6b7280;">Select a device first</td></tr>';
+            return;
+        }
+
+        document.getElementById('historyBody').innerHTML =
+            '<tr><td colspan="5" style="text-align:center;padding:40px;"><span class="loading-spinner" style="width:18px;height:18px;border-width:2px;vertical-align:middle;margin-right:8px;"></span> Loading history…</td></tr>';
+
+        try {
+            // Fetch all commands for this device
+            const cmdSnap = await db.collection('commands')
+                .whereEqualTo('deviceId', deviceId)
+                .get();
+
+            // Fetch all results
+            const resultSnap = await db.collection('results').get();
+
+            const resultMap = {};
+            resultSnap.forEach(doc => { resultMap[doc.id] = doc.data(); });
+
+            const historyItems = [];
+
+            cmdSnap.forEach(doc => {
+                const cmdData = doc.data();
+                const cmdId = doc.id;
+                const resultData = resultMap[cmdId];
+
+                historyItems.push({
+                    id: cmdId,
+                    action: cmdData.action || '?',
+                    time: new Date(cmdData.createdAt || 0),
+                    timeStr: new Date(cmdData.createdAt || 0).toLocaleString(),
+                    status: resultData ? (resultData.status || 'ok') : 'pending',
+                    output: resultData ? (resultData.output || '—') : '⏳ Not yet executed',
+                    params: cmdData.params || {}
+                });
+            });
+
+            state.historyData = historyItems;
+            state.historyFiltered = [...historyItems];
+
+            // Populate action filter
+            const actionFilter = document.getElementById('histActionFilter');
+            const actions = [...new Set(historyItems.map(h => h.action))].sort();
+            actionFilter.innerHTML = '<option value="all">All Actions</option>' +
+                actions.map(a => `<option value="${a}">${a}</option>`).join('');
+
+            // Default sort by time desc
+            state.historySortKey = 'time';
+            state.historySortAsc = false;
+            sortHistory('time');
+            renderHistoryTable();
+
+            toast(`📋 Loaded ${historyItems.length} history entries`, 'info');
+        } catch (e) {
+            appendDiag(`❌ History load error: ${e.message}`);
+            document.getElementById('historyBody').innerHTML =
+                `<tr><td colspan="5" style="text-align:center;padding:40px;color:#f87171;">Error: ${escapeHtml(e.message)}</td></tr>`;
+        }
+    }
+
+    function sortHistory(key) {
+        // Update arrow indicators
+        ['time', 'action', 'status', 'output'].forEach(k => {
+            const el = document.getElementById('sortArrow' + k.charAt(0).toUpperCase() + k.slice(1));
+            if (el) {
+                if (k === key) {
+                    el.textContent = state.historySortAsc ? '▲' : '▼';
+                } else {
+                    el.textContent = '';
+                }
+            }
+        });
+
+        if (state.historySortKey === key) {
+            state.historySortAsc = !state.historySortAsc;
+        } else {
+            state.historySortKey = key;
+            state.historySortAsc = key === 'time' ? false : true; // time defaults desc
+        }
+
+        const sorted = [...state.historyFiltered];
+        sorted.sort((a, b) => {
+            let va, vb;
+            if (key === 'time') { va = a.time.getTime(); vb = b.time.getTime(); }
+            else if (key === 'action') { va = a.action; vb = b.action; }
+            else if (key === 'status') { va = a.status; vb = b.status; }
+            else if (key === 'output') { va = a.output; vb = b.output; }
+            else return 0;
+
+            if (va < vb) return state.historySortAsc ? -1 : 1;
+            if (va > vb) return state.historySortAsc ? 1 : -1;
+            return 0;
+        });
+
+        state.historyFiltered = sorted;
+        renderHistoryTable();
+    }
+
+    function filterHistory() {
+        const search = document.getElementById('histSearch').value.toLowerCase();
+        const statusFilter = document.getElementById('histStatusFilter').value;
+        const actionFilter = document.getElementById('histActionFilter').value;
+
+        state.historyFiltered = state.historyData.filter(h => {
+            if (statusFilter !== 'all' && h.status !== statusFilter) return false;
+            if (actionFilter !== 'all' && h.action !== actionFilter) return false;
+            if (search && !h.output.toLowerCase().includes(search) &&
+                !h.action.toLowerCase().includes(search) &&
+                !JSON.stringify(h.params).toLowerCase().includes(search)) return false;
+            return true;
+        });
+
+        renderHistoryTable();
+    }
+
+    function renderHistoryTable() {
+        const tbody = document.getElementById('historyBody');
+        const count = state.historyFiltered.length;
+        document.getElementById('histCountDisplay').textContent = `${count} / ${state.historyData.length} entries`;
+
+        if (count === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:#6b7280;">No matching entries</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = state.historyFiltered.map(h => {
+            const rowClass = h.status === 'error' || h.status === 'write_fail' ? 'ht-row-error' :
+                            h.status === 'ok' ? 'ht-row-ok' : '';
+            const paramsStr = Object.keys(h.params).length > 0
+                ? escapeHtml(JSON.stringify(h.params)).slice(0, 80)
+                : '—';
+
+            // Truncate output for table
+            const outputTruncated = h.output.length > 80
+                ? escapeHtml(h.output.slice(0, 80)) + '…'
+                : escapeHtml(h.output);
+            const isLong = h.output.length > 80;
+
+            return `<tr class="${rowClass}">
+                <td class="ht-time">${h.timeStr}</td>
+                <td class="ht-action">${escapeHtml(h.action)}</td>
+                <td><span class="ht-status ${h.status}">${h.status}</span></td>
+                <td style="font-size:11px;color:#6b7280;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(paramsStr)}">${paramsStr}</td>
+                <td>
+                    <span class="ht-output" id="ht_out_${escapeHtml(h.id)}">${outputTruncated}</span>
+                    ${isLong ? `<span class="ht-expand-btn" onclick="toggleHistOutput('${escapeHtml(h.id)}')">expand</span>` : ''}
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    function toggleHistOutput(id) {
+        const el = document.getElementById('ht_out_' + id);
+        if (!el) return;
+        el.classList.toggle('expanded');
+        const btn = el.nextElementSibling;
+        if (btn) btn.textContent = el.classList.contains('expanded') ? 'collapse' : 'expand';
     }
 
     // ═══════════════════════════════════════════════════════
