@@ -1255,10 +1255,11 @@ async function loadUserDevices() {
 
     if (state.deviceUnsubscribe) state.deviceUnsubscribe();
 
-    // Main listener — triggers when the list of assigned device IDs changes
+    // Listen to user_devices/{uid} for real-time updates
     state.deviceUnsubscribe = db.collection('user_devices').doc(uid)
         .onSnapshot(async (docSnap) => {
             state.loadingDevices = false;
+            document.getElementById('dashLastUpdated').textContent = 'Assigned devices loading…';
 
             if (!docSnap.exists) {
                 state.devices = [];
@@ -1272,15 +1273,64 @@ async function loadUserDevices() {
             const data = docSnap.data();
             const deviceIds = data.deviceIds || [];
 
-            await resolveDevices(deviceIds);
+            if (!deviceIds.length) {
+                state.devices = [];
+                renderDeviceList();
+                updateStats();
+                document.getElementById('sidebarDeviceCount').textContent = 'Devices: 0';
+                document.getElementById('dashLastUpdated').textContent = 'No devices assigned';
+                return;
+            }
 
-            // Start periodic status refresh (every 5 seconds) for online/offline updates
-            if (deviceStatusRefreshTimer) clearInterval(deviceStatusRefreshTimer);
-            deviceStatusRefreshTimer = setInterval(() => {
-                if (state.devices.length > 0) {
-                    refreshDeviceStatuses();
+            // Resolve each device ID
+            const devices = [];
+            for (const deviceId of deviceIds) {
+                try {
+                    const devSnap = await db.collection('devices').doc(deviceId).get();
+                    if (devSnap.exists) {
+                        const devData = devSnap.data();
+                        devices.push({
+                            id: deviceId,
+                            deviceName: devData.deviceName || devData.name || `Device ${deviceId}`,
+                            lastSeen: devData.lastSeen || 0,
+                            fcmToken: devData.fcmToken || null,
+                            ...devData
+                        });
+                    } else {
+                        devices.push({
+                            id: deviceId,
+                            deviceName: `Device ${deviceId.slice(0,8)}…`,
+                            lastSeen: 0,
+                            fcmToken: null,
+                            _virtual: true
+                        });
+                    }
+                } catch (err) {
+                    devices.push({
+                        id: deviceId,
+                        deviceName: `Device ${deviceId.slice(0,8)}…`,
+                        lastSeen: 0,
+                        fcmToken: null,
+                        _virtual: true
+                    });
                 }
-            }, 5000);
+            }
+
+            state.devices = devices.sort((a, b) => {
+                const aOn = isOnline(a); const bOn = isOnline(b);
+                if (aOn !== bOn) return aOn ? -1 : 1;
+                return (a.id).localeCompare(b.id);
+            });
+
+            renderDeviceList();
+            updateStats();
+            document.getElementById('sidebarDeviceCount').textContent = 'Devices: ' + state.devices.length;
+
+            const online = devices.filter(d => isOnline(d)).length;
+            document.getElementById('dashLastUpdated').textContent =
+                `${devices.length} assigned · ${online} online · ${new Date().toLocaleTimeString()}`;
+
+            appendDiag(`✅ Loaded ${devices.length} assigned devices (${online} online)`);
 
             // Start ping watch
             pingOfflineDevices();
