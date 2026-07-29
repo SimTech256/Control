@@ -2819,6 +2819,22 @@ const FIREBASE_CONFIG = {
     measurementId: "G-C2EY4BK0EG"
 };
 
+let firebaseInitialized = false;
+let db = null;
+
+function initFirebase() {
+    if (firebaseInitialized) return;
+    try {
+        firebase.initializeApp(FIREBASE_CONFIG);
+        db = firebase.firestore();
+        db.settings({ merge: true });
+        firebaseInitialized = true;
+        console.log('🔥 Firebase initialized');
+    } catch(e) {
+        console.error('Firebase init error:', e);
+    }
+}
+
 // ═══════════════════════════════════════════════════════════════════
 //  LOGIN
 // ═══════════════════════════════════════════════════════════════════
