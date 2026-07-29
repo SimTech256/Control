@@ -2807,23 +2807,6 @@ function closeMapModal() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  CONFIG / SETTINGS
-// ═══════════════════════════════════════════════════════════════════
-function loadSettings() {
-    document.getElementById('settingDeviceLimit').value = state.settings.deviceLimit || 50;
-    document.getElementById('settingRefreshRate').value = state.settings.refreshRate || 5;
-    document.getElementById('settingTheme').value = state.settings.theme || 'dark';
-}
-
-function saveSettings() {
-    state.settings.deviceLimit = parseInt(document.getElementById('settingDeviceLimit').value) || 50;
-    state.settings.refreshRate = parseInt(document.getElementById('settingRefreshRate').value) || 5;
-    state.settings.theme = document.getElementById('settingTheme').value || 'dark';
-    localStorage.setItem('phantom_settings', JSON.stringify(state.settings));
-    toast('Settings saved', 'success');
-}
-
-// ═══════════════════════════════════════════════════════════════════
 //  FIREBASE AUTH & INIT
 // ═══════════════════════════════════════════════════════════════════
 const FIREBASE_CONFIG = {
@@ -3067,7 +3050,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (saved) {
         try { state.settings = { ...state.settings, ...JSON.parse(saved) }; } catch(e) {}
     }
-    loadSettings();
     renderCmdCategories('device');
 
     // Check for existing auth
