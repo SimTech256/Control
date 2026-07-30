@@ -1589,35 +1589,51 @@
         if (!db || !firebaseInitialized) return;
         if (state.resultUnsub) state.resultUnsub();
 
-        // Capture the moment we start listening — any result with a
-        // completedAt/createdAt BEFORE this is considered "old" and
-        // must NOT auto-open the map or re-trigger GPS display.
+        // Timestamp when this session started — used ONLY to block old get_location
+        // results from auto-opening the map on Command Center entry.
+        // location_update (tracking) is ALWAYS live and bypasses this check entirely.
         const listenStartedAt = state.deviceSelectedAt || Date.now();
 
         state.resultUnsub = db.collection('results')
             .onSnapshot(snapshot => {
                 snapshot.docChanges().forEach(change => {
+                    const docId = change.doc.id;
+                    const data = change.doc.data();
+
                     if (change.type === 'added') {
-                        const docId = change.doc.id;
-                        const data = change.doc.data();
+                        // Update result card if we're already tracking this command
                         const existing = state.results.find(r => r.id === docId);
                         if (existing && (existing.status === 'sent' || existing.status === 'pending')) {
                             updateCmdResult(docId, data.status || 'error', data.output || '—');
                             toast(data.status === 'ok' ? '✓ ' + existing.name : '✗ ' + existing.name,
                                   data.status === 'ok' ? 'success' : 'error');
                         }
-                        // Only open GPS map for results that arrived AFTER this session started
-                        const resultTs = data.completedAt || data.createdAt || 0;
-                        const isNew = resultTs >= listenStartedAt;
-                        if (isNew && (data.action === 'location_update' || data.action === 'get_location')) {
+
+                        // ── GPS map update logic ──
+                        if (data.action === 'location_update') {
+                            // Tracking updates: ALWAYS live, no timestamp gate
+                            handleLocationResult(data, docId);
+                        } else if (data.action === 'get_location') {
+                            // GPS Once: only show if it arrived in this session
+                            const resultTs = data.completedAt || data.createdAt || 0;
+                            if (resultTs >= listenStartedAt) handleLocationResult(data, docId);
+                        } else if (state.trackingActive && data.deviceId === deviceId) {
+                            // Tracking active but device sent result under a different
+                            // action name — try to extract coords anyway
                             handleLocationResult(data, docId);
                         }
                     }
+
                     if (change.type === 'modified') {
-                        const docId = change.doc.id;
-                        const data = change.doc.data();
-                        // Modified results are always new activity — show on map
+                        // Modified results are always fresh activity
+                        const existing = state.results.find(r => r.id === docId);
+                        if (existing) {
+                            updateCmdResult(docId, data.status || 'error', data.output || '—');
+                        }
+                        // Show on map for any location-related modification
                         if (data.action === 'location_update' || data.action === 'get_location') {
+                            handleLocationResult(data, docId);
+                        } else if (state.trackingActive && data.deviceId === deviceId) {
                             handleLocationResult(data, docId);
                         }
                     }
@@ -1741,40 +1757,59 @@
     }
 
     function handleLocationResult(data, docId) {
-        let lat = null, lng = null;
+        let lat = null, lng = null, accuracy = null;
         let output = data.output || '';
 
-        if (typeof output === 'string') {
+        // ── Parse output field (most common: JSON string) ──
+        if (typeof output === 'string' && output.trim()) {
             try {
                 const parsed = JSON.parse(output);
-                if (parsed.lat !== undefined) lat = parseFloat(parsed.lat);
-                else if (parsed.latitude !== undefined) lat = parseFloat(parsed.latitude);
-                if (parsed.lng !== undefined) lng = parseFloat(parsed.lng);
-                else if (parsed.longitude !== undefined) lng = parseFloat(parsed.longitude);
-                else if (parsed.lon !== undefined) lng = parseFloat(parsed.lon);
+                // Flat: {lat, lng} or {latitude, longitude}
+                lat = parseFloat(parsed.lat ?? parsed.latitude ?? null);
+                lng = parseFloat(parsed.lng ?? parsed.longitude ?? parsed.lon ?? null);
+                accuracy = parsed.accuracy ?? parsed.acc ?? null;
+                // Nested: {location: {lat, lng}}
+                if ((isNaN(lat) || isNaN(lng)) && parsed.location) {
+                    lat = parseFloat(parsed.location.lat ?? parsed.location.latitude ?? null);
+                    lng = parseFloat(parsed.location.lng ?? parsed.location.longitude ?? null);
+                    accuracy = parsed.location.accuracy ?? accuracy;
+                }
             } catch(e) {
-                const latMatch = output.match(/lat(?:itude)?["']?\s*[:=]\s*([-\d.]+)/i);
-                const lngMatch = output.match(/(?:lng|lon(?:gitude)?)["']?\s*[:=]\s*([-\d.]+)/i);
-                if (latMatch) lat = parseFloat(latMatch[1]);
-                if (lngMatch) lng = parseFloat(lngMatch[1]);
+                // Regex fallback for plain-text output
+                const latM = output.match(/lat(?:itude)?["']?\s*[:=]\s*([-\d.]+)/i);
+                const lngM = output.match(/(?:lng|lon(?:gitude)?)["']?\s*[:=]\s*([-\d.]+)/i);
+                const accM = output.match(/accuracy["']?\s*[:=]\s*([\d.]+)/i);
+                if (latM) lat = parseFloat(latM[1]);
+                if (lngM) lng = parseFloat(lngM[1]);
+                if (accM) accuracy = parseFloat(accM[1]);
             }
-        } else if (typeof output === 'object') {
-            if (output.lat !== undefined) lat = parseFloat(output.lat);
-            else if (output.latitude !== undefined) lat = parseFloat(output.latitude);
-            if (output.lng !== undefined) lng = parseFloat(output.lng);
-            else if (output.longitude !== undefined) lng = parseFloat(output.longitude);
+        } else if (typeof output === 'object' && output !== null) {
+            lat = parseFloat(output.lat ?? output.latitude ?? null);
+            lng = parseFloat(output.lng ?? output.longitude ?? output.lon ?? null);
+            accuracy = output.accuracy ?? null;
         }
 
-        if (!lat && data.lat !== undefined) lat = parseFloat(data.lat);
-        if (!lng && data.lng !== undefined) lng = parseFloat(data.lng);
-        if (!lat && data.latitude !== undefined) lat = parseFloat(data.latitude);
-        if (!lng && data.longitude !== undefined) lng = parseFloat(data.longitude);
+        // ── Fallback: coords as top-level fields on the result document ──
+        if (isNaN(lat) || lat === null) lat = parseFloat(data.lat ?? data.latitude ?? null);
+        if (isNaN(lng) || lng === null) lng = parseFloat(data.lng ?? data.longitude ?? data.lon ?? null);
+        if (!accuracy) accuracy = data.accuracy ?? null;
 
-        if (lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng)) {
-            const label = data.action === 'location_update' ? '📍 Live Tracking Update' : '📍 GPS Fix';
-            updateMapDisplay(lat, lng, label);
-            toast(`📍 Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}`, 'info');
+        // ── If no valid coords, return false so caller can show error ──
+        if (lat === null || lng === null || isNaN(lat) || isNaN(lng) || lat === 0 && lng === 0) {
+            return false;
         }
+
+        const label = data.action === 'location_update' ? '📍 Live Tracking' : '📍 GPS Fix';
+        const accStr = accuracy ? ` ±${parseFloat(accuracy).toFixed(0)}m` : '';
+        updateMapDisplay(lat, lng, label);
+        document.getElementById('mapCoords').textContent =
+            `📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}${accStr}`;
+        if (data.action === 'location_update') {
+            toast(`📍 Tracking: ${lat.toFixed(5)}, ${lng.toFixed(5)}${accStr}`, 'info');
+        } else {
+            toast(`📍 GPS Fix: ${lat.toFixed(5)}, ${lng.toFixed(5)}${accStr}`, 'success');
+        }
+        return true;
     }
 
     // ═══════════════════════════════════════════════════════
@@ -1784,13 +1819,18 @@
         if (state.trackingActive) { toast('Tracking already active', 'info'); return; }
         const cmd = COMMANDS.loc.find(c => c.action === 'start_tracking');
         if (!cmd) return;
-        const params = { interval_ms: intervalMs || '5000' };
-        executeCmd(cmd, params);
         state.trackingActive = true;
         state.trackingPath = [];
+        // Remove old polyline so the new tracking session starts fresh
+        if (state.trackingPolyline && state.locationMap) {
+            state.locationMap.removeLayer(state.trackingPolyline);
+            state.trackingPolyline = null;
+        }
         updateTrackingUI();
-        toast('📍 GPS Tracking started', 'success');
+        executeCmd(cmd, { interval_ms: intervalMs || '5000' });
         showMapSection('📍 Live GPS Tracking');
+        document.getElementById('mapCoords').textContent = '⏳ Waiting for first GPS ping…';
+        toast('📍 GPS Tracking started — waiting for device…', 'success');
     }
 
     function stopTrackingOnDevice() {
@@ -2354,12 +2394,26 @@
             state.commandsSent++;
             document.getElementById('cmdCountDisplay').textContent = state.commandsSent;
 
+            // For GPS Once: open map immediately with waiting state
+            if (cmd.action === 'get_location') {
+                showMapSection('📍 GPS Once');
+                document.getElementById('mapCoords').textContent = '⏳ Waiting for GPS fix…';
+            }
+
             const unsub = db.collection('results').doc(cmdId).onSnapshot(snap => {
                 if (snap.exists) {
                     const d = snap.data();
                     updateCmdResult(cmdId, d.status || 'error', d.output || '—');
                     unsub();
-                    if (cmd.action === 'get_location') handleLocationResult(d, cmdId);
+                    if (cmd.action === 'get_location') {
+                        const gotCoords = handleLocationResult(d, cmdId);
+                        // If device returned an error or no coords, show that in map area
+                        if (!gotCoords) {
+                            showMapSection('📍 GPS Once');
+                            document.getElementById('mapCoords').textContent =
+                                '⚠️ ' + (typeof d.output === 'string' ? d.output : 'No GPS fix — try outdoors');
+                        }
+                    }
                     toast(d.status === 'ok' ? '✓ ' + actionLabel : '✗ ' + actionLabel,
                           d.status === 'ok' ? 'success' : 'error');
                 }
