@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MyControl · C2 Dashboard</title>
+    <title>Phantom Dashboard</title>
 
     <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore-compat.js"></script>
@@ -587,7 +587,7 @@
     <!-- ═══ LOGIN SCREEN ═══ -->
     <div id="loginScreen" class="login-screen">
         <div class="login-card">
-            <h1>MyControl</h1>
+            <h1>Phantom</h1>
             <p class="sub">Sign in to access your devices</p>
             <input id="loginEmail" type="email" placeholder="Email" autocomplete="email" />
             <input id="loginPass" type="password" placeholder="Password" autocomplete="current-password" />
@@ -600,8 +600,8 @@
 
         <aside class="sidebar">
             <div class="sidebar-header">
-                <div class="logo">MC</div>
-                <h1>MyControl</h1>
+                <div class="logo">P</div>
+                <h1>Phantom</h1>
             </div>
             <nav class="sidebar-nav">
                 <div class="nav-label">Main</div>
@@ -629,7 +629,7 @@
                     </div>
                 </div>
             </nav>
-            <div class="sidebar-footer" style="font-size:11px;color:#3a3f52;">MyControl · C2</div>
+            <div class="sidebar-footer" style="font-size:11px;color:#3a3f52;">Phantom · Dashboard</div>
         </aside>
 
         <div class="main">
@@ -984,7 +984,7 @@
             { icon: '🔄', name: 'Swipe', action: 'swipe', params: { x1: '300', y1: '800', x2: '300', y2: '200' } },
             { icon: '🔒', name: 'Lock Screen', action: 'lock_screen' },
             { icon: '💡', name: 'Flashlight', action: 'toggle_flashlight', isToggle: true },
-            { icon: '🔔', name: 'Notification', action: 'notify', params: { title: 'MyControl', body: 'Command received' } },
+            { icon: '🔔', name: 'Notification', action: 'notify', params: { title: 'Phantom', body: 'Command received' } },
             { icon: '💻', name: 'Device Info', action: 'get_device_info' },
             { icon: '🔋', name: 'Battery Info', action: 'get_battery_info' },
             { icon: '📶', name: 'Network Info', action: 'get_network_info' },
@@ -1218,7 +1218,7 @@
         dbg.style.display = 'block';
         dbg.innerHTML += '[' + new Date().toLocaleTimeString() + '] ' + msg + '\n';
         dbg.scrollTop = dbg.scrollHeight;
-        console.log('[MyControl] ' + msg);
+        console.log('[Phantom] ' + msg);
     }
 
     function setFirebaseStatus(type, msg) {
@@ -2647,13 +2647,12 @@
             '<tr><td colspan="5" style="text-align:center;padding:40px;"><span class="loading-spinner" style="width:18px;height:18px;border-width:2px;vertical-align:middle;margin-right:8px;"></span> Loading history…</td></tr>';
 
         try {
-            // Fetch ALL commands ever sent to this device (no limit), newest first
+            // Fetch ALL commands ever sent to this device (no limit, no orderBy = no composite index needed)
             const cmdSnap = await db.collection('commands')
                 .where('deviceId', '==', deviceId)
-                .orderBy('createdAt', 'desc')
                 .get();
 
-            // Fetch ALL results in one go and map by command ID
+            // Fetch ALL results and map by command ID
             const resultSnap = await db.collection('results').get();
             const resultMap = {};
             resultSnap.forEach(doc => { resultMap[doc.id] = doc.data(); });
@@ -2673,6 +2672,9 @@
                     params: cmdData.params || {}
                 });
             });
+
+            // Sort newest-first client-side (no Firestore composite index needed)
+            historyItems.sort((a, b) => b.time.getTime() - a.time.getTime());
 
             state.historyData = historyItems;
             state.historyFiltered = [...historyItems]; // already newest-first from query
