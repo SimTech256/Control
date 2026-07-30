@@ -1522,55 +1522,89 @@
     // ═══════════════════════════════════════════════════════
     async function loadPendingResultsForDevice(deviceId) {
         if (!db || !firebaseInitialized) return;
-        appendDiag(`🔍 Checking for pending results for ${deviceId.slice(0,8)}…`);
+        appendDiag(`🔍 Loading results for ${deviceId.slice(0,8)}…`);
         try {
+            // Both queries filtered by deviceId — no global collection reads
             const cmdSnapshot = await db.collection('commands')
                 .where('deviceId', '==', deviceId)
                 .get();
 
-            const resultSnapshot = await db.collection('results').get();
+            // Results filtered by deviceId (confirmed field in Firestore structure)
+            const resultSnapshot = await db.collection('results')
+                .where('deviceId', '==', deviceId)
+                .get();
 
-            const resultIds = new Set();
-            resultSnapshot.forEach(doc => resultIds.add(doc.id));
+            // Map: commandId → result data (result doc ID = commandId field = command doc ID)
+            const resultMap = {};
+            resultSnapshot.forEach(doc => {
+                const d = doc.data();
+                // Use doc ID as key (same as commandId field and command doc ID)
+                resultMap[doc.id] = d;
+                // Also key by commandId field as fallback in case IDs ever differ
+                if (d.commandId) resultMap[d.commandId] = d;
+            });
 
             cmdSnapshot.forEach(doc => {
                 const cmdId = doc.id;
                 const cmdData = doc.data();
                 const action = cmdData.action || '?';
-                const alreadyShown = state.results.find(r => r.id === cmdId);
-                if (alreadyShown) return;
+                if (state.results.find(r => r.id === cmdId)) return; // already shown
 
-                if (resultIds.has(cmdId)) {
-                    const resultDoc = resultSnapshot.docs.find(d => d.id === cmdId);
-                    if (resultDoc) {
-                        const rd = resultDoc.data();
-                        state.results.unshift({
-                            id: cmdId,
-                            action: action,
-                            name: action,
-                            status: rd.status || 'ok',
-                            output: rd.output || '—',
-                            time: new Date((rd.completedAt || 0)).toLocaleTimeString(),
-                            params: cmdData.params || {}
-                        });
-                    }
+                const rd = resultMap[cmdId];
+                if (rd) {
+                    state.results.unshift({
+                        id: cmdId, action, name: action,
+                        status: rd.status || 'ok',
+                        output: rd.output || '—',
+                        time: new Date(rd.completedAt || cmdData.createdAt || 0).toLocaleTimeString(),
+                        params: cmdData.params || {}
+                    });
                 } else {
                     state.results.unshift({
-                        id: cmdId,
-                        action: action,
-                        name: action,
+                        id: cmdId, action, name: action,
                         status: 'pending',
                         output: '⏳ Device offline — will execute when online',
-                        time: new Date((cmdData.createdAt || 0)).toLocaleTimeString(),
+                        time: new Date(cmdData.createdAt || 0).toLocaleTimeString(),
                         params: cmdData.params || {}
                     });
                 }
             });
 
-            if (cmdSnapshot.size > 0) {
-                appendDiag(`📋 Loaded ${cmdSnapshot.size} pending/result commands`);
-            }
+            // Sort results newest-first
+            state.results.sort((a, b) => {
+                const ta = new Date(a.time).getTime() || 0;
+                const tb = new Date(b.time).getTime() || 0;
+                return tb - ta;
+            });
+
+            appendDiag(`📋 ${cmdSnapshot.size} commands, ${resultSnapshot.size} results loaded`);
             renderCmdResults();
+
+            // ── Restore last known location on Command Center open ──
+            // Since results now have action field (confirmed from Firestore),
+            // scan them directly for the most recent successful location result.
+            let lastLocData = null;
+            let lastLocTs = 0;
+            resultSnapshot.forEach(doc => {
+                const rd = doc.data();
+                const action = rd.action || '';
+                if ((action === 'get_location' || action === 'location_update') && rd.status === 'ok') {
+                    const ts = rd.completedAt || 0;
+                    if (ts > lastLocTs) { lastLocTs = ts; lastLocData = rd; }
+                }
+            });
+            if (lastLocData) {
+                setTimeout(() => {
+                    const showed = handleLocationResult(lastLocData, 'last_known');
+                    if (showed) {
+                        document.getElementById('gpsMapTitle').textContent = '📍 Last Known Location';
+                        const coordEl = document.getElementById('mapCoords');
+                        if (coordEl && !coordEl.textContent.includes('cached'))
+                            coordEl.textContent += '  (cached)';
+                    }
+                }, 600);
+            }
+
         } catch (e) {
             appendDiag(`⚠️ loadPendingResults: ${e.message}`);
         }
@@ -1589,51 +1623,44 @@
         if (!db || !firebaseInitialized) return;
         if (state.resultUnsub) state.resultUnsub();
 
-        // Timestamp when this session started — used ONLY to block old get_location
-        // results from auto-opening the map on Command Center entry.
-        // location_update (tracking) is ALWAYS live and bypasses this check entirely.
         const listenStartedAt = state.deviceSelectedAt || Date.now();
 
+        // Filter by deviceId — only receive results for this specific device.
+        // Confirmed from Firestore structure: every result doc has a deviceId field.
         state.resultUnsub = db.collection('results')
+            .where('deviceId', '==', deviceId)
             .onSnapshot(snapshot => {
                 snapshot.docChanges().forEach(change => {
                     const docId = change.doc.id;
                     const data = change.doc.data();
 
                     if (change.type === 'added') {
-                        // Update result card if we're already tracking this command
+                        // Update result card if we sent this command this session
                         const existing = state.results.find(r => r.id === docId);
                         if (existing && (existing.status === 'sent' || existing.status === 'pending')) {
                             updateCmdResult(docId, data.status || 'error', data.output || '—');
-                            toast(data.status === 'ok' ? '✓ ' + existing.name : '✗ ' + existing.name,
-                                  data.status === 'ok' ? 'success' : 'error');
+                            toast(data.status === 'ok'
+                                ? '✓ ' + existing.name
+                                : '✗ ' + existing.name,
+                                data.status === 'ok' ? 'success' : 'error');
                         }
 
-                        // ── GPS map update logic ──
+                        // GPS map — action field confirmed present in result docs
                         if (data.action === 'location_update') {
-                            // Tracking updates: ALWAYS live, no timestamp gate
+                            // Tracking: always live, no timestamp check
                             handleLocationResult(data, docId);
                         } else if (data.action === 'get_location') {
-                            // GPS Once: only show if it arrived in this session
-                            const resultTs = data.completedAt || data.createdAt || 0;
-                            if (resultTs >= listenStartedAt) handleLocationResult(data, docId);
-                        } else if (state.trackingActive && data.deviceId === deviceId) {
-                            // Tracking active but device sent result under a different
-                            // action name — try to extract coords anyway
-                            handleLocationResult(data, docId);
+                            // GPS Once: only show if arrived after this session started
+                            if ((data.completedAt || 0) >= listenStartedAt) {
+                                handleLocationResult(data, docId);
+                            }
                         }
                     }
 
                     if (change.type === 'modified') {
-                        // Modified results are always fresh activity
                         const existing = state.results.find(r => r.id === docId);
-                        if (existing) {
-                            updateCmdResult(docId, data.status || 'error', data.output || '—');
-                        }
-                        // Show on map for any location-related modification
+                        if (existing) updateCmdResult(docId, data.status || 'error', data.output || '—');
                         if (data.action === 'location_update' || data.action === 'get_location') {
-                            handleLocationResult(data, docId);
-                        } else if (state.trackingActive && data.deviceId === deviceId) {
                             handleLocationResult(data, docId);
                         }
                     }
@@ -2202,6 +2229,9 @@
             toggleDiv.appendChild(startBtn); toggleDiv.appendChild(stopBtn);
             fields.appendChild(toggleDiv);
 
+            // Hide the default Execute button — Start/Stop above handle execution
+            document.getElementById('modalDefaultButtons').style.display = 'none';
+
             state.pendingModalCmd = cmd;
             modal.classList.add('open');
             return;
@@ -2701,15 +2731,23 @@
             '<tr><td colspan="5" style="text-align:center;padding:40px;"><span class="loading-spinner" style="width:18px;height:18px;border-width:2px;vertical-align:middle;margin-right:8px;"></span> Loading history…</td></tr>';
 
         try {
-            // Fetch ALL commands ever sent to this device (no limit, no orderBy = no composite index needed)
+            // Fetch ALL commands for this device
             const cmdSnap = await db.collection('commands')
                 .where('deviceId', '==', deviceId)
                 .get();
 
-            // Fetch ALL results and map by command ID
-            const resultSnap = await db.collection('results').get();
+            // Fetch results filtered by deviceId — no global reads, no composite index needed
+            const resultSnap = await db.collection('results')
+                .where('deviceId', '==', deviceId)
+                .get();
+
+            // Build result map: doc.id → data, and commandId field → data (both keys for robustness)
             const resultMap = {};
-            resultSnap.forEach(doc => { resultMap[doc.id] = doc.data(); });
+            resultSnap.forEach(doc => {
+                const d = doc.data();
+                resultMap[doc.id] = d;
+                if (d.commandId) resultMap[d.commandId] = d;
+            });
 
             const historyItems = [];
             cmdSnap.forEach(doc => {
@@ -2723,6 +2761,7 @@
                     timeStr: new Date(cmdData.createdAt || 0).toLocaleString(),
                     status: resultData ? (resultData.status || 'ok') : 'pending',
                     output: resultData ? (resultData.output || '—') : '⏳ Not yet executed',
+                    completedAt: resultData ? new Date(resultData.completedAt || 0).toLocaleTimeString() : '—',
                     params: cmdData.params || {}
                 });
             });
@@ -2836,20 +2875,28 @@
         tbody.innerHTML = state.historyFiltered.map(h => {
             const rowClass = h.status === 'error' || h.status === 'write_fail' ? 'ht-row-error' :
                             h.status === 'ok' ? 'ht-row-ok' : '';
-            const paramsStr = Object.keys(h.params).length > 0
-                ? escapeHtml(JSON.stringify(h.params)).slice(0, 80)
+
+            // Format params cleanly — show key=value pairs so vibrate shows "duration=5000"
+            const params = h.params || {};
+            const paramsStr = Object.keys(params).length > 0
+                ? Object.entries(params).map(([k, v]) => `${k}=${v}`).join(', ')
                 : '—';
 
-            const outputTruncated = h.output.length > 80
-                ? escapeHtml(h.output.slice(0, 80)) + '…'
+            const outputTruncated = h.output.length > 100
+                ? escapeHtml(h.output.slice(0, 100)) + '…'
                 : escapeHtml(h.output);
-            const isLong = h.output.length > 80;
+            const isLong = h.output.length > 100;
+
+            // Show sent time + completed time if available
+            const timeDisplay = h.completedAt && h.completedAt !== '—'
+                ? `<div>${h.timeStr}</div><div style="color:#5a6070;font-size:10px;">✓ ${h.completedAt}</div>`
+                : h.timeStr;
 
             return `<tr class="${rowClass}">
-                <td class="ht-time">${h.timeStr}</td>
+                <td class="ht-time">${timeDisplay}</td>
                 <td class="ht-action">${escapeHtml(h.action)}</td>
                 <td><span class="ht-status ${h.status}">${h.status}</span></td>
-                <td style="font-size:11px;color:#6b7280;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(paramsStr)}">${paramsStr}</td>
+                <td style="font-size:11px;color:#9ba1b2;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(paramsStr)}">${escapeHtml(paramsStr)}</td>
                 <td>
                     <span class="ht-output" id="ht_out_${escapeHtml(h.id)}">${outputTruncated}</span>
                     ${isLong ? `<span class="ht-expand-btn" onclick="toggleHistOutput('${escapeHtml(h.id)}')">expand</span>` : ''}
