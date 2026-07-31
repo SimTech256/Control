@@ -1802,10 +1802,10 @@
                     accuracy = parsed.location.accuracy ?? accuracy;
                 }
             } catch(e) {
-                // Regex fallback for plain-text output
+                // Regex fallback — Android outputs: "lat=XX, lon=XX, acc=Xm, provider=gps"
                 const latM = output.match(/lat(?:itude)?["']?\s*[:=]\s*([-\d.]+)/i);
                 const lngM = output.match(/(?:lng|lon(?:gitude)?)["']?\s*[:=]\s*([-\d.]+)/i);
-                const accM = output.match(/accuracy["']?\s*[:=]\s*([\d.]+)/i);
+                const accM = output.match(/acc(?:uracy)?["']?\s*[:=]\s*([\d.]+)/i); // matches acc= AND accuracy=
                 if (latM) lat = parseFloat(latM[1]);
                 if (lngM) lng = parseFloat(lngM[1]);
                 if (accM) accuracy = parseFloat(accM[1]);
