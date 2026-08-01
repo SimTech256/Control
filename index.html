@@ -2424,21 +2424,25 @@
             state.commandsSent++;
             document.getElementById('cmdCountDisplay').textContent = state.commandsSent;
 
-            // GPS Once: do NOT open the map here — wait for actual coordinates.
-            // The map will open inside handleLocationResult only when valid
-            // lat/lng are parsed from the result. If GPS fails on the device,
-            // the error stays in the result card only — no map popup.
+            // For GPS Once: open map immediately with waiting state
+            if (cmd.action === 'get_location') {
+                showMapSection('📍 GPS Once');
+                document.getElementById('mapCoords').textContent = '⏳ Waiting for GPS fix…';
+            }
 
             const unsub = db.collection('results').doc(cmdId).onSnapshot(snap => {
                 if (snap.exists) {
                     const d = snap.data();
                     updateCmdResult(cmdId, d.status || 'error', d.output || '—');
                     unsub();
-                    // For GPS Once: handleLocationResult opens the map ONLY if
-                    // coordinates are actually present in the output.
-                    // If GPS timed out or errored, returns false — map stays closed.
                     if (cmd.action === 'get_location') {
-                        handleLocationResult(d, cmdId);
+                        const gotCoords = handleLocationResult(d, cmdId);
+                        // If device returned an error or no coords, show that in map area
+                        if (!gotCoords) {
+                            showMapSection('📍 GPS Once');
+                            document.getElementById('mapCoords').textContent =
+                                '⚠️ ' + (typeof d.output === 'string' ? d.output : 'No GPS fix — try outdoors');
+                        }
                     }
                     toast(d.status === 'ok' ? '✓ ' + actionLabel : '✗ ' + actionLabel,
                           d.status === 'ok' ? 'success' : 'error');
